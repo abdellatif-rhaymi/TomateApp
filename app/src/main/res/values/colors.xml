@@ -6,5 +6,95 @@
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+        <!-- Couleurs principales -->
+        <color name="primary_green">#4CAF50</color>
+        <color name="secondary_green">#66BB6A</color>
+        <color name="dark_green">#2E7D32</color>
+        <color name="light_green">#E8F5E8</color>
+        <color name="medium_green">#558B59</color>
+
+        <!-- Couleurs de fond -->
+        <color name="background_green">#F1F8E9</color>
+        <color name="background_light">#FAFAFA</color>
+        <color name="white">#FFFFFF</color>
+
+        <!-- Couleurs d'accent -->
+        <color name="accent_orange">#FF9800</color>
+        <color name="accent_blue">#2196F3</color>
+        <color name="light_blue">#E3F2FD</color>
+        <color name="medium_blue">#1976D2</color>
+        <color name="dark_blue">#0D47A1</color>
+
+        <!-- Couleurs de statut -->
+        <color name="success_green">#4CAF50</color>
+        <color name="warning_orange">#FF9800</color>
+        <color name="error_red">#F44336</color>
+        <color name="info_blue">#2196F3</color>
+
+        <!-- Couleurs de texte -->
+        <color name="text_primary">#212121</color>
+        <color name="text_secondary">#757575</color>
+        <color name="dark_gray">#424242</color>
+        <color name="medium_gray">#666666</color>
+        <color name="light_gray">#BDBDBD</color>
+
+        <!-- Couleurs d'overlay -->
+        <color name="overlay_loading">#80000000</color>
+
+    <color name="green">#4CAF50</color>
+    <color name="gray">#757575</color>
+    <color name="gray_light">#E0E0E0</color>
+    <color name="red">#FF0000</color>
+    <!-- Couleurs principales -->
+    <color name="red_primary">#F44336</color>  <!-- Rouge Material -->
+    <color name="green_primary">#4CAF50</color> <!-- Vert Material -->
+
+    <!-- Variantes -->
+    <color name="red_dark">#D32F2F</color>
+    <color name="red_light">#FFCDD2</color>
+    <color name="green_dark">#388E3C</color>
+    <color name="green_light">#C8E6C9</color>
+
+    <!-- Couleurs de texte -->
+    <color name="text_on_red">#FFFFFF</color> <!-- Texte blanc sur rouge -->
+    <color name="text_on_green">#FFFFFF</color> <!-- Texte blanc sur vert -->
+
+        <!-- Couleurs principales pour l'admin -->
+        <color name="admin_primary">#2E402F</color>
+        <color name="admin_secondary">#819781</color>
+        <color name="admin_primary_light">#4C6A4C</color>
+        <color name="admin_accent">#61AC5E</color>
+        <color name="admin_background">#ECEFF4</color>
+
+        <!-- Couleurs des cartes -->
+        <color name="admin_card_primary">#5EAC8C</color>
+        <color name="admin_card_secondary">#81C1A6</color>
+
+        <!-- Couleurs du texte -->
+        <color name="admin_text_primary">#2E3440</color>
+        <color name="admin_text_secondary">#D8DEE9</color>
+        <color name="admin_divider">#88D0B9</color>
+
+        <!-- Couleurs de statut -->
+        <color name="admin_warning">#EBCB8B</color>
+        <color name="status_pending">#D08770</color>
+        <color name="status_resolved">#A3BE8C</color>
+        <color name="status_error">#BF616A</color>
+
+        <!-- Couleurs pour les feedbacks -->
+        <color name="feedback_text_primary">#2E4035</color>
+        <color name="feedback_text_secondary">#5EAC9F</color>
+        <color name="message_background">#F5F6FA</color>
+
+        <!-- Couleurs pour les ratings -->
+        <color name="rating_gold">#FFD700</color>
+        <color name="rating_gray">#E0E0E0</color>
+
+    <color name="m3_surface_container">#F5F5F5</color>
+    <color name="m3_on_surface">#1D1B20</color>
+    <color name="m3_primary">#6750A4</color>
+    <color name="m3_outline">#79747E</color>
+    <color name="status_active">#57E791</color>
+
 </resources>

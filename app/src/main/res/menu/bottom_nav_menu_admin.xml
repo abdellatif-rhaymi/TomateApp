@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/ic_admin_dashboard"
+        android:title="Dashboard" />
+
+    <item
+        android:id="@+id/nav_profile_admin"
+        android:icon="@drawable/ic_profile"
+        android:title="Profil"/>
+
+    <item
+        android:id="@+id/nav_feedbacks"
+        android:icon="@drawable/ic_feedbacks"
+        android:title="Feedbacks" />
+
+
+
+    <item
+        android:id="@+id/nav_users"
+        android:icon="@drawable/ic_users"
+        android:title="Utilisateurs" />
+
+    <item
+        android:id="@+id/nav_logout_admin"
+        android:icon="@drawable/ic_logout"
+        android:title="Déconnexion" />
+</menu>

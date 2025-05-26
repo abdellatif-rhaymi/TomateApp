@@ -1,0 +1,67 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Feuille stylisée -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M60,15
+            C45,25 40,40 50,50
+            C55,45 60,40 60,30
+            C65,40 70,45 75,50
+            C85,40 80,25 60,15Z"
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="0.5"/>
+
+    <!-- Tige élégante -->
+    <path
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M60,15
+            Q60,25 58,35
+            Q62,40 60,45" />
+
+    <!-- Tomate moderne -->
+    <path
+        android:fillColor="#D32F2F"
+        android:pathData="M60,50
+            C40,50 35,70 40,90
+            C50,100 70,100 80,90
+            C85,70 80,50 60,50Z"
+        android:strokeColor="#B71C1C"
+        android:strokeWidth="0.8"/>
+
+    <!-- Rayures de style (effet premium) -->
+    <path
+        android:strokeColor="#B71C1C"
+        android:strokeWidth="0.7"
+        android:pathData="M50,65
+            C55,70 60,72 65,70
+            M45,80
+            C55,85 65,85 75,80" />
+
+    <!-- Icône IoT intégrée (ondes wifi stylisées) -->
+    <group android:translateX="60" android:translateY="70">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,-15
+                A15,15 0 0,1 0,15
+                A15,15 0 0,1 0,-15Z"
+            android:alpha="0.3"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,-10
+                A10,10 0 0,1 0,10
+                A10,10 0 0,1 0,-10Z"
+            android:alpha="0.5"/>
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M0,-5
+                A5,5 0 0,1 0,5
+                A5,5 0 0,1 0,-5Z"
+            android:alpha="0.8"/>
+    </group>
+</vector>

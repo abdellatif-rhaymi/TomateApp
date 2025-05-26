@@ -7,179 +7,200 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.widget.Button;
+import android.widget.Button; // Importe Button si tu as analyzeAgainButton
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat; // Pour l'executor
 
 import com.example.tomatosapp.R; // Adapte ton package R
-import com.example.tomatosapp.utils.TomatoDiseaseClassifier; // Adapte l'import
+// Importe les nouvelles classes réseau
+import com.example.tomatosapp.network.PredictionApiService;
+import com.example.tomatosapp.network.PredictionResponse;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
+import java.io.InputStream;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-// Renomme l'activité si besoin (ici PredictionActivity)
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.logging.HttpLoggingInterceptor; // Pour le logging des requêtes
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+
 public class PredictionActivity extends AppCompatActivity {
     private static final String TAG = "PredictionActivity";
 
     private ImageView imageView;
     private TextView resultTextView;
-    private Button analyzeAgainButton; // Si tu as ce bouton
+    // private Button analyzeAgainButton; // Décommente si tu l'utilises
 
-    private TomatoDiseaseClassifier classifier;
     private Uri photoUri; // URI passée par l'intent
 
-    // Executor pour exécuter l'inférence en arrière-plan
+    // --- NOUVEAU : Pour l'appel API ---
+    private PredictionApiService apiService;
+    // !!! REMPLACE PAR TON URL CLOUD RUN EXACTE !!!
+    private static final String BASE_URL = "https://tomato-disease-service-299287005031.europe-west1.run.app/";
+
+    // Executor pour les tâches d'arrière-plan (comme la préparation de l'image)
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     // Handler pour poster les résultats sur le thread UI
     private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_prediction); // Ton layout pour afficher le résultat
+        setContentView(R.layout.activity_prediction);
 
-        imageView = findViewById(R.id.image_view); // ID dans ton layout
-        resultTextView = findViewById(R.id.result_text_view); // ID dans ton layout
-        // analyzeAgainButton = findViewById(R.id.analyze_again_button); // ID si tu as ce bouton
+        imageView = findViewById(R.id.prediction_image_view);
+        resultTextView = findViewById(R.id.result_text_view);
+        // analyzeAgainButton = findViewById(R.id.analyze_again_button); // Décommente si besoin
 
-        // Récupérer l'URI de la photo depuis l'Intent
-        String uriString = getIntent().getStringExtra("photo_uri"); // Assure-toi que l'activité précédente passe bien cet extra
+        // Initialisation de Retrofit
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY); // Loggue les détails des requêtes/réponses
+        OkHttpClient client = new OkHttpClient.Builder()
+                .addInterceptor(loggingInterceptor)
+                .build();
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        apiService = retrofit.create(PredictionApiService.class);
+        // --- FIN Initialisation Retrofit ---
+
+        String uriString = getIntent().getStringExtra("photo_uri");
         if (uriString != null) {
             photoUri = Uri.parse(uriString);
             Log.d(TAG, "URI Reçue: " + photoUri.toString());
-            displayImage(); // Affiche l'image
-            setupTFLiteClassifierAndAnalyze(); // Initialise ET analyse
+            displayImage();
+            uploadAndAnalyzeImage(photoUri); // Lance l'appel API
         } else {
             Log.e(TAG, "Erreur: Aucun URI d'image trouvé dans l'intent.");
             Toast.makeText(this, "Erreur: Aucune image trouvée", Toast.LENGTH_SHORT).show();
-            finish(); // Ferme l'activité si pas d'image
-            return;
+            finish();
         }
 
-        // Optionnel: Configurer un bouton pour revenir en arrière
-        // analyzeAgainButton.setOnClickListener(v -> finish());
+        // if (analyzeAgainButton != null) {
+        //     analyzeAgainButton.setOnClickListener(v -> finish());
+        // }
     }
 
     private void displayImage() {
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), photoUri);
             imageView.setImageBitmap(bitmap);
-            Log.d(TAG,"Image affichée depuis l'URI.");
+            Log.d(TAG, "Image affichée depuis l'URI.");
         } catch (IOException e) {
             Log.e(TAG, "Erreur de chargement de l'image depuis l'URI: " + e.getMessage());
             Toast.makeText(this, "Erreur de chargement de l'image", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void setupTFLiteClassifierAndAnalyze() {
-        resultTextView.setText("Initialisation du modèle...");
-        // Utilise l'executor pour initialiser en arrière-plan au cas où ça prendrait du temps
-        executorService.execute(() -> {
+    private void uploadAndAnalyzeImage(Uri imageUri) {
+        resultTextView.setText("Envoi de l'image au serveur...");
+
+        executorService.execute(() -> { // Exécute la préparation et l'appel en arrière-plan
             try {
-                classifier = new TomatoDiseaseClassifier(this); // Initialise ici
-                // Si l'initialisation réussit, lance l'analyse
-                if (classifier.isModelReady()) {
-                    analyzeImage();
-                } else {
-                    // Gère le cas où isModelReady est false après l'init (ex: incohérence labels)
+                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                if (inputStream == null) {
                     mainThreadHandler.post(() -> {
-                        resultTextView.setText("Erreur: Modèle non initialisé correctement.");
-                        Toast.makeText(this, "Erreur chargement modèle (vérifier logs)", Toast.LENGTH_LONG).show();
+                        resultTextView.setText("Erreur: Impossible d'ouvrir le flux de l'image.");
+                        Toast.makeText(PredictionActivity.this, "Erreur lecture image", Toast.LENGTH_SHORT).show();
                     });
+                    return;
                 }
+
+                // Convertir InputStream en byte array
+                ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+                int bufferSize = 1024 * 4; // Augmenter la taille du buffer peut aider
+                byte[] buffer = new byte[bufferSize];
+                int len;
+                while ((len = inputStream.read(buffer)) != -1) {
+                    byteBuffer.write(buffer, 0, len);
+                }
+                byte[] imageBytes = byteBuffer.toByteArray();
+                inputStream.close(); // Ferme le flux
+
+                // Créer la partie de la requête pour le fichier
+                // Essaye de récupérer le type MIME, sinon utilise "image/jpeg" ou "image/png" par défaut
+                String mimeType = getContentResolver().getType(imageUri);
+                if (mimeType == null) {
+                    mimeType = "image/jpeg"; // Un type par défaut
+                }
+                RequestBody requestFile = RequestBody.create(MediaType.parse(mimeType), imageBytes);
+                MultipartBody.Part body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile); // "file" doit correspondre à la clé attendue par Flask
+
+                // Faire l'appel API
+                Call<PredictionResponse> call = apiService.uploadImage(body);
+                call.enqueue(new Callback<PredictionResponse>() {
+                    @Override
+                    public void onResponse(Call<PredictionResponse> call, Response<PredictionResponse> response) {
+                        mainThreadHandler.post(() -> { // Toujours mettre à jour l'UI sur le thread principal
+                            if (response.isSuccessful() && response.body() != null) {
+                                PredictionResponse prediction = response.body();
+                                if (prediction.getError() != null) {
+                                    resultTextView.setText("Erreur du serveur: " + prediction.getError());
+                                    Log.e(TAG, "Erreur serveur: " + prediction.getError());
+                                } else {
+                                    String label = prediction.getPredictedLabel();
+                                    float confidence = prediction.getConfidence(); // La réponse JSON donne déjà la confiance brute
+                                    String confidencePercent = String.format(Locale.US, "%.1f%%", confidence * 100);
+                                    resultTextView.setText("Résultat (Cloud):\n" + label + "\nConfiance: " + confidencePercent);
+                                    Log.i(TAG, "Prédiction Cloud: " + label + " (" + confidencePercent + ")");
+                                    // --- TODO: ICI, AJOUTER LA LOGIQUE POUR CHERCHER ET AFFICHER LA SOLUTION ---
+                                    // String solutionInfo = findSolutionForDisease(label);
+                                    // // Ajoute à resultTextView ou un autre TextView
+                                }
+                            } else {
+                                String errorBodyStr = "Réponse d'erreur non disponible";
+                                if (response.errorBody() != null) {
+                                    try {
+                                        errorBodyStr = response.errorBody().string();
+                                    } catch (IOException e) {
+                                        Log.e(TAG, "Erreur lecture errorBody", e);
+                                    }
+                                }
+                                Log.e(TAG, "Erreur API: Code " + response.code() + " - Body: " + errorBodyStr);
+                                resultTextView.setText("Erreur API: " + response.code());
+                                Toast.makeText(PredictionActivity.this, "Erreur serveur: " + response.code(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Call<PredictionResponse> call, Throwable t) {
+                        mainThreadHandler.post(() -> {
+                            Log.e(TAG, "Échec de l'appel API (réseau/autre)", t);
+                            resultTextView.setText("Échec réseau: " + t.getMessage());
+                            Toast.makeText(PredictionActivity.this, "Problème de connexion", Toast.LENGTH_LONG).show();
+                        });
+                    }
+                });
+
             } catch (IOException e) {
-                // Gère l'IOException lancée par le constructeur si échec critique
                 mainThreadHandler.post(() -> {
-                    Log.e(TAG, "Erreur critique lors du chargement du modèle: " + e.getMessage());
-                    resultTextView.setText("Erreur chargement modèle IA.");
-                    Toast.makeText(this, "Erreur critique chargement modèle IA", Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Erreur IO lors de la préparation de l'image pour l'envoi: " + e.getMessage());
+                    resultTextView.setText("Erreur préparation image.");
+                    Toast.makeText(PredictionActivity.this, "Erreur préparation image", Toast.LENGTH_SHORT).show();
                 });
             }
         });
     }
 
-    private void analyzeImage() {
-        if (classifier == null || !classifier.isModelReady()) {
-            mainThreadHandler.post(() -> resultTextView.setText("Erreur: Modèle non prêt."));
-            return;
-        }
-        mainThreadHandler.post(() -> resultTextView.setText("Analyse de l'image..."));
-
-        // Exécute l'analyse sur un thread séparé
-        executorService.execute(() -> {
-            Bitmap bitmap = null;
-            try {
-                // Re-charge le bitmap ici au cas où il serait gros
-                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), photoUri);
-                if (bitmap == null) throw new IOException("Impossible de charger le Bitmap");
-
-                // Effectuer la prédiction
-                final List<TomatoDiseaseClassifier.Recognition> results = classifier.recognizeImage(bitmap);
-
-                // Afficher les résultats sur le thread UI
-                mainThreadHandler.post(() -> displayResults(results));
-
-            } catch (IOException e) {
-                mainThreadHandler.post(() -> {
-                    Log.e(TAG, "Erreur IO lors de l'analyse: " + e.getMessage());
-                    resultTextView.setText("Erreur lors de l'analyse.");
-                    Toast.makeText(this, "Erreur analyse image", Toast.LENGTH_SHORT).show();
-                });
-            } catch (Exception e) { // Attrape d'autres erreurs potentielles d'inférence
-                mainThreadHandler.post(() -> {
-                    Log.e(TAG, "Erreur Inférence: " + e.getMessage());
-                    resultTextView.setText("Erreur Inférence Modèle.");
-                    Toast.makeText(this, "Erreur Inférence", Toast.LENGTH_SHORT).show();
-                });
-            } finally {
-                // Optionnel: libérer le bitmap s'il est très gros et non nécessaire ailleurs
-                // if (bitmap != null) {
-                //     bitmap.recycle();
-                // }
-            }
-        });
-    }
-
-
-    private void displayResults(List<TomatoDiseaseClassifier.Recognition> results) {
-        if (results == null) { // Vérifie null au cas où recognizeImage retourne null (ne devrait pas avec le code actuel)
-            resultTextView.setText("Erreur: Résultat d'analyse invalide.");
-            return;
-        }
-        if (results.isEmpty()) {
-            resultTextView.setText("Aucune maladie détectée avec une confiance suffisante.");
-            return;
-        }
-
-        StringBuilder sb = new StringBuilder();
-        // N'affiche que le meilleur résultat basé sur le code actuel de postprocess
-        TomatoDiseaseClassifier.Recognition topResult = results.get(0);
-        String disease = topResult.getTitle();
-        float confidence = topResult.getConfidence() * 100;
-
-        sb.append("Résultat:\n");
-        sb.append(disease).append(" (").append(String.format(Locale.US, "%.1f%%", confidence)).append(")\n\n");
-
-        // --- TODO: ICI, AJOUTER LA LOGIQUE POUR CHERCHER ET AFFICHER LA SOLUTION ---
-        // String solutionInfo = findSolutionForDisease(disease); // Fonction à créer
-        // sb.append("Recommandation:\n").append(solutionInfo);
-        // -------------------------------------------------------------------------
-
-        resultTextView.setText(sb.toString());
-    }
-
-    // --- TODO: Fonction pour récupérer les infos sur la maladie ---
+    // --- TODO: Fonction pour récupérer les infos sur la maladie (base de connaissances locale) ---
     // private String findSolutionForDisease(String diseaseName) {
     //     // Implémente la lecture de ton JSON ou autre structure ici
     //     // et retourne la description/solution.
@@ -191,10 +212,9 @@ public class PredictionActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Arrête l'executor et ferme le classificateur
-        executorService.shutdown();
-        if (classifier != null) {
-            classifier.close();
+        // Arrête l'executor pour éviter les fuites de threads
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
         }
     }
 }
