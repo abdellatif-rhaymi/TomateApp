@@ -1,4 +1,4 @@
-package com.example.tomatosapp.activities; // Adapte ton package
+package com.example.tomatosapp.activities;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
@@ -7,17 +7,23 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.widget.Button; // Importe Button si tu as analyzeAgainButton
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.tomatosapp.R; // Adapte ton package R
-// Importe les nouvelles classes réseau
+import com.example.tomatosapp.R;
 import com.example.tomatosapp.network.PredictionApiService;
 import com.example.tomatosapp.network.PredictionResponse;
+
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,45 +36,75 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
-import okhttp3.logging.HttpLoggingInterceptor; // Pour le logging des requêtes
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-
 public class PredictionActivity extends AppCompatActivity {
     private static final String TAG = "PredictionActivity";
 
+    // Views
     private ImageView imageView;
     private TextView resultTextView;
-    // private Button analyzeAgainButton; // Décommente si tu l'utilises
+    private TextView solutionsTextView;
 
-    private Uri photoUri; // URI passée par l'intent
-
-    // --- NOUVEAU : Pour l'appel API ---
+    // Network
     private PredictionApiService apiService;
-    // !!! REMPLACE PAR TON URL CLOUD RUN EXACTE !!!
     private static final String BASE_URL = "https://tomato-disease-service-299287005031.europe-west1.run.app/";
 
-    // Executor pour les tâches d'arrière-plan (comme la préparation de l'image)
+    // Threading
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    // Handler pour poster les résultats sur le thread UI
     private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
+
+    // Data
+    private Uri photoUri;
+
+    private FirebaseFirestore db;
+
+    private Button backButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prediction);
+        Log.d(TAG, "onCreate: Activity created");
 
+        // Initialize views
         imageView = findViewById(R.id.prediction_image_view);
         resultTextView = findViewById(R.id.result_text_view);
-        // analyzeAgainButton = findViewById(R.id.analyze_again_button); // Décommente si besoin
+        solutionsTextView = findViewById(R.id.solutions_text_view);
+        backButton  = findViewById(R.id.back_button);
+        Log.d(TAG, "Views initialized");
 
-        // Initialisation de Retrofit
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY); // Loggue les détails des requêtes/réponses
+        // Initialize Firebase
+        try {
+            db = FirebaseFirestore.getInstance();
+            Log.d(TAG, "Firestore initialized successfully");
+        } catch (Exception e) {
+            Log.e(TAG, "Firestore initialization failed", e);
+            showError("Erreur d'initialisation de la base de données");
+            return;
+        }
+
+        // Configure Retrofit
+        configureRetrofit();
+
+        // Handle incoming image
+        handleIncomingImage();
+
+        // back to another analyse
+
+        backButton.setOnClickListener(v->{finish();});
+    }
+
+    private void configureRetrofit() {
+        Log.d(TAG, "Configuring Retrofit...");
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor(message -> Log.d(TAG, "HTTP: " + message));
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(loggingInterceptor)
                 .build();
@@ -78,143 +114,372 @@ public class PredictionActivity extends AppCompatActivity {
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        apiService = retrofit.create(PredictionApiService.class);
-        // --- FIN Initialisation Retrofit ---
 
+        apiService = retrofit.create(PredictionApiService.class);
+        Log.d(TAG, "Retrofit configured successfully");
+    }
+
+    private void handleIncomingImage() {
+        Log.d(TAG, "Handling incoming image...");
         String uriString = getIntent().getStringExtra("photo_uri");
-        if (uriString != null) {
-            photoUri = Uri.parse(uriString);
-            Log.d(TAG, "URI Reçue: " + photoUri.toString());
-            displayImage();
-            uploadAndAnalyzeImage(photoUri); // Lance l'appel API
-        } else {
-            Log.e(TAG, "Erreur: Aucun URI d'image trouvé dans l'intent.");
-            Toast.makeText(this, "Erreur: Aucune image trouvée", Toast.LENGTH_SHORT).show();
+
+        if (uriString == null) {
+            Log.e(TAG, "No photo URI found in intent extras");
+            showError("Aucune image trouvée");
             finish();
+            return;
         }
 
-        // if (analyzeAgainButton != null) {
-        //     analyzeAgainButton.setOnClickListener(v -> finish());
-        // }
+        try {
+            photoUri = Uri.parse(uriString);
+            Log.d(TAG, "Photo URI parsed: " + photoUri.toString());
+            displayImage();
+            uploadAndAnalyzeImage(photoUri);
+        } catch (Exception e) {
+            Log.e(TAG, "Error parsing image URI", e);
+            showError("Format d'image invalide");
+            finish();
+        }
     }
 
     private void displayImage() {
+        Log.d(TAG, "Displaying image...");
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), photoUri);
             imageView.setImageBitmap(bitmap);
-            Log.d(TAG, "Image affichée depuis l'URI.");
+            Log.d(TAG, "Image displayed successfully");
         } catch (IOException e) {
-            Log.e(TAG, "Erreur de chargement de l'image depuis l'URI: " + e.getMessage());
-            Toast.makeText(this, "Erreur de chargement de l'image", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "Error loading image", e);
+            showError("Erreur de chargement de l'image");
         }
     }
 
     private void uploadAndAnalyzeImage(Uri imageUri) {
-        resultTextView.setText("Envoi de l'image au serveur...");
+        Log.d(TAG, "Starting image upload and analysis...");
+        updateStatus("Analyse en cours...", "Recherche de solutions...");
 
-        executorService.execute(() -> { // Exécute la préparation et l'appel en arrière-plan
-            try {
-                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+        executorService.execute(() -> {
+            Log.d(TAG, "Executor service started for image processing");
+            try (InputStream inputStream = getContentResolver().openInputStream(imageUri)) {
                 if (inputStream == null) {
-                    mainThreadHandler.post(() -> {
-                        resultTextView.setText("Erreur: Impossible d'ouvrir le flux de l'image.");
-                        Toast.makeText(PredictionActivity.this, "Erreur lecture image", Toast.LENGTH_SHORT).show();
-                    });
+                    Log.e(TAG, "Input stream is null");
+                    showError("Impossible d'ouvrir l'image");
                     return;
                 }
 
-                // Convertir InputStream en byte array
-                ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-                int bufferSize = 1024 * 4; // Augmenter la taille du buffer peut aider
-                byte[] buffer = new byte[bufferSize];
-                int len;
-                while ((len = inputStream.read(buffer)) != -1) {
-                    byteBuffer.write(buffer, 0, len);
-                }
-                byte[] imageBytes = byteBuffer.toByteArray();
-                inputStream.close(); // Ferme le flux
+                Log.d(TAG, "Converting image to byte array...");
+                byte[] imageBytes = convertInputStreamToByteArray(inputStream);
+                Log.d(TAG, "Image size: " + imageBytes.length + " bytes");
 
-                // Créer la partie de la requête pour le fichier
-                // Essaye de récupérer le type MIME, sinon utilise "image/jpeg" ou "image/png" par défaut
-                String mimeType = getContentResolver().getType(imageUri);
-                if (mimeType == null) {
-                    mimeType = "image/jpeg"; // Un type par défaut
-                }
-                RequestBody requestFile = RequestBody.create(MediaType.parse(mimeType), imageBytes);
-                MultipartBody.Part body = MultipartBody.Part.createFormData("file", "image.jpg", requestFile); // "file" doit correspondre à la clé attendue par Flask
+                RequestBody requestBody = createRequestBody(imageUri, imageBytes);
+                MultipartBody.Part imagePart = createMultipartBody(requestBody);
 
-                // Faire l'appel API
-                Call<PredictionResponse> call = apiService.uploadImage(body);
-                call.enqueue(new Callback<PredictionResponse>() {
+                Log.d(TAG, "Making API call...");
+                apiService.uploadImage(imagePart).enqueue(new Callback<PredictionResponse>() {
                     @Override
-                    public void onResponse(Call<PredictionResponse> call, Response<PredictionResponse> response) {
-                        mainThreadHandler.post(() -> { // Toujours mettre à jour l'UI sur le thread principal
-                            if (response.isSuccessful() && response.body() != null) {
-                                PredictionResponse prediction = response.body();
-                                if (prediction.getError() != null) {
-                                    resultTextView.setText("Erreur du serveur: " + prediction.getError());
-                                    Log.e(TAG, "Erreur serveur: " + prediction.getError());
-                                } else {
-                                    String label = prediction.getPredictedLabel();
-                                    float confidence = prediction.getConfidence(); // La réponse JSON donne déjà la confiance brute
-                                    String confidencePercent = String.format(Locale.US, "%.1f%%", confidence * 100);
-                                    resultTextView.setText("Résultat (Cloud):\n" + label + "\nConfiance: " + confidencePercent);
-                                    Log.i(TAG, "Prédiction Cloud: " + label + " (" + confidencePercent + ")");
-                                    // --- TODO: ICI, AJOUTER LA LOGIQUE POUR CHERCHER ET AFFICHER LA SOLUTION ---
-                                    // String solutionInfo = findSolutionForDisease(label);
-                                    // // Ajoute à resultTextView ou un autre TextView
-                                }
-                            } else {
-                                String errorBodyStr = "Réponse d'erreur non disponible";
-                                if (response.errorBody() != null) {
-                                    try {
-                                        errorBodyStr = response.errorBody().string();
-                                    } catch (IOException e) {
-                                        Log.e(TAG, "Erreur lecture errorBody", e);
-                                    }
-                                }
-                                Log.e(TAG, "Erreur API: Code " + response.code() + " - Body: " + errorBodyStr);
-                                resultTextView.setText("Erreur API: " + response.code());
-                                Toast.makeText(PredictionActivity.this, "Erreur serveur: " + response.code(), Toast.LENGTH_LONG).show();
-                            }
-                        });
+                    public void onResponse(@NonNull Call<PredictionResponse> call, @NonNull Response<PredictionResponse> response) {
+                        Log.d(TAG, "API response received. Code: " + response.code());
+                        handleApiResponse(response);
                     }
 
                     @Override
-                    public void onFailure(Call<PredictionResponse> call, Throwable t) {
-                        mainThreadHandler.post(() -> {
-                            Log.e(TAG, "Échec de l'appel API (réseau/autre)", t);
-                            resultTextView.setText("Échec réseau: " + t.getMessage());
-                            Toast.makeText(PredictionActivity.this, "Problème de connexion", Toast.LENGTH_LONG).show();
-                        });
+                    public void onFailure(@NonNull Call<PredictionResponse> call, @NonNull Throwable t) {
+                        Log.e(TAG, "API call failed", t);
+                        showError("Échec de connexion: " + t.getMessage());
                     }
                 });
 
-            } catch (IOException e) {
-                mainThreadHandler.post(() -> {
-                    Log.e(TAG, "Erreur IO lors de la préparation de l'image pour l'envoi: " + e.getMessage());
-                    resultTextView.setText("Erreur préparation image.");
-                    Toast.makeText(PredictionActivity.this, "Erreur préparation image", Toast.LENGTH_SHORT).show();
-                });
+            } catch (Exception e) {
+                Log.e(TAG, "Error during image processing", e);
+                showError("Erreur de traitement: " + e.getMessage());
             }
         });
     }
 
-    // --- TODO: Fonction pour récupérer les infos sur la maladie (base de connaissances locale) ---
-    // private String findSolutionForDisease(String diseaseName) {
-    //     // Implémente la lecture de ton JSON ou autre structure ici
-    //     // et retourne la description/solution.
-    //     return "Informations sur le traitement/prévention à venir...";
-    // }
-    // -------------------------------------------------------------
+    private byte[] convertInputStreamToByteArray(InputStream inputStream) throws IOException {
+        Log.d(TAG, "Converting input stream to byte array...");
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+        byte[] buffer = new byte[1024 * 4]; // 4KB buffer
+        int len;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteBuffer.write(buffer, 0, len);
+        }
+        Log.d(TAG, "Byte array conversion complete");
+        return byteBuffer.toByteArray();
+    }
 
+    private RequestBody createRequestBody(Uri imageUri, byte[] imageBytes) {
+        String mimeType = getContentResolver().getType(imageUri);
+        if (mimeType == null) {
+            mimeType = "image/jpeg";
+            Log.w(TAG, "MIME type not found, defaulting to JPEG");
+        }
+        Log.d(TAG, "Creating request body with MIME type: " + mimeType);
+        return RequestBody.create(MediaType.parse(mimeType), imageBytes);
+    }
+
+    private MultipartBody.Part createMultipartBody(RequestBody requestFile) {
+        Log.d(TAG, "Creating multipart body");
+        return MultipartBody.Part.createFormData("file", "image.jpg", requestFile);
+    }
+
+    private void handleApiResponse(Response<PredictionResponse> response) {
+        if (response.isSuccessful() && response.body() != null) {
+            PredictionResponse prediction = response.body();
+            if (prediction.getError() != null) {
+                Log.e(TAG, "API returned error: " + prediction.getError());
+                showError(prediction.getError());
+            } else {
+                Log.d(TAG, "Prediction successful. Label: " + prediction.getPredictedLabel() +
+                        ", Confidence: " + prediction.getConfidence());
+                displayPredictionResults(prediction);
+            }
+        } else {
+            String errorBody = "Empty error body";
+            try {
+                if (response.errorBody() != null) {
+                    errorBody = response.errorBody().string();
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Error reading error body", e);
+            }
+            Log.e(TAG, "API request failed. Code: " + response.code() + ", Error: " + errorBody);
+            showError("Erreur du serveur: " + response.code());
+        }
+    }
+
+    private void displayPredictionResults(PredictionResponse prediction) {
+        String diseaseName = prediction.getPredictedLabel().trim();
+        float confidence = prediction.getConfidence();
+
+        Log.d(TAG, "Displaying results for disease: '" + diseaseName + "'");
+        Log.d(TAG, "Confidence: " + confidence);
+
+        // Format the result text
+        String resultText = String.format(Locale.getDefault(),
+                "Maladie détectée: %s\nConfiance: %.1f%%",
+                diseaseName,
+                confidence * 100);
+
+        // Update UI on main thread
+        mainThreadHandler.post(() -> {
+            resultTextView.setText(resultText);
+            solutionsTextView.setText("Recherche de solutions en cours...");
+        });
+
+        // Fetch solution for the detected disease
+        fetchSolutionForDisease(diseaseName);
+    }
+    private void fetchSolutionForDisease(String diseaseName) {
+        Log.d(TAG, "=== STARTING FIRESTORE SOLUTION FETCH ===");
+        Log.d(TAG, "Original disease name: '" + diseaseName + "'");
+        Log.d(TAG, "Disease name length: " + diseaseName.length());
+
+        // Clean the disease name - remove extra spaces and normalize
+        String cleanDiseaseName = diseaseName.trim();
+        Log.d(TAG, "Cleaned disease name: '" + cleanDiseaseName + "'");
+
+        // Update UI to show we're searching
+        mainThreadHandler.post(() -> {
+            solutionsTextView.setText("🔍 Recherche en cours pour: " + cleanDiseaseName);
+        });
+
+        // First, try to get the document with exact name match
+        db.collection("maladies")
+                .document(cleanDiseaseName)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    Log.d(TAG, "=== FIRESTORE EXACT MATCH QUERY RESULT ===");
+                    Log.d(TAG, "Document exists: " + documentSnapshot.exists());
+                    Log.d(TAG, "Document ID: " + documentSnapshot.getId());
+
+                    if (documentSnapshot.exists()) {
+                        Log.d(TAG, "✅ EXACT MATCH FOUND!");
+
+                        String solution = documentSnapshot.getString("solution");
+                        Log.d(TAG, "Solution value: " + (solution != null ? "Found (" + solution.length() + " chars)" : "null"));
+
+                        if (solution != null && !solution.trim().isEmpty()) {
+                            Log.d(TAG, "✅ SOLUTION RETRIEVED SUCCESSFULLY");
+                            Log.d(TAG, "Solution preview: " + solution.substring(0, Math.min(100, solution.length())));
+
+                            mainThreadHandler.post(() -> {
+                                solutionsTextView.setText("✅ Solution trouvée:\n\n" + solution);
+                            });
+                            return;
+                        } else {
+                            Log.w(TAG, "⚠️ Solution field is null or empty");
+                        }
+                    }
+
+                    // If exact match failed, try searching all documents
+                    Log.d(TAG, "❌ Exact match failed, searching all documents...");
+                    searchAllMaladiesDocuments(cleanDiseaseName);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ Exact match query failed", e);
+                    // Try searching all documents as fallback
+                    searchAllMaladiesDocuments(cleanDiseaseName);
+                });
+    }
+
+    private void searchAllMaladiesDocuments(String originalDiseaseName) {
+        Log.d(TAG, "=== SEARCHING ALL MALADIES DOCUMENTS ===");
+        Log.d(TAG, "Search term: '" + originalDiseaseName + "'");
+
+        db.collection("maladies")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    Log.d(TAG, "=== FIRESTORE COLLECTION QUERY SUCCESSFUL ===");
+                    Log.d(TAG, "Total documents found: " + queryDocumentSnapshots.size());
+
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        Log.e(TAG, "❌ NO DOCUMENTS FOUND in maladies collection");
+                        mainThreadHandler.post(() -> {
+                            solutionsTextView.setText("❌ Aucune maladie trouvée dans la base de données");
+                        });
+                        return;
+                    }
+
+                    // Log all available diseases and try to find matches
+                    boolean foundMatch = false;
+                    int documentCount = 0;
+
+                    Log.d(TAG, "=== ALL AVAILABLE DISEASES IN FIRESTORE ===");
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        documentCount++;
+                        String documentId = document.getId();
+                        String solution = document.getString("solution");
+
+                        Log.d(TAG, documentCount + ". Disease ID: '" + documentId + "'");
+                        Log.d(TAG, "   - Has solution: " + (solution != null && !solution.trim().isEmpty()));
+
+                        if (solution != null && !solution.trim().isEmpty()) {
+                            Log.d(TAG, "   - Solution preview: " + solution.substring(0, Math.min(50, solution.length())) + "...");
+                        }
+
+                        // Try different matching strategies
+                        boolean exactMatch = documentId.equals(originalDiseaseName);
+                        boolean caseInsensitiveMatch = documentId.toLowerCase().equals(originalDiseaseName.toLowerCase());
+                        boolean containsMatch = documentId.toLowerCase().contains(originalDiseaseName.toLowerCase());
+                        boolean reverseContainsMatch = originalDiseaseName.toLowerCase().contains(documentId.toLowerCase());
+                        boolean normalizedMatch = normalizeDiseaseName(documentId).equals(normalizeDiseaseName(originalDiseaseName));
+
+                        Log.d(TAG, "   - Exact match: " + exactMatch);
+                        Log.d(TAG, "   - Case insensitive: " + caseInsensitiveMatch);
+                        Log.d(TAG, "   - Contains match: " + containsMatch);
+                        Log.d(TAG, "   - Reverse contains: " + reverseContainsMatch);
+                        Log.d(TAG, "   - Normalized match: " + normalizedMatch);
+
+                        if (exactMatch || caseInsensitiveMatch || containsMatch || reverseContainsMatch || normalizedMatch) {
+                            Log.d(TAG, "✅ MATCH FOUND: " + documentId);
+
+                            if (solution != null && !solution.trim().isEmpty()) {
+                                Log.d(TAG, "✅ SOLUTION FOUND FOR MATCH");
+
+                                final String matchType = exactMatch ? "exact" :
+                                        caseInsensitiveMatch ? "case-insensitive" :
+                                                containsMatch ? "contains" :
+                                                        reverseContainsMatch ? "reverse-contains" : "normalized";
+
+                                mainThreadHandler.post(() -> {
+                                    solutionsTextView.setText("✅ Solution trouvée (" + matchType + " match):\n\n" + solution);
+                                });
+                                foundMatch = true;
+                                break;
+                            } else {
+                                Log.w(TAG, "⚠️ Match found but solution is null/empty");
+                            }
+                        }
+                    }
+
+                    if (!foundMatch) {
+                        Log.e(TAG, "❌ NO MATCHES FOUND in " + documentCount + " documents");
+
+                        // Show available diseases for debugging
+                        StringBuilder availableDiseases = new StringBuilder("Maladies disponibles:\n");
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            availableDiseases.append("• ").append(document.getId()).append("\n");
+                        }
+
+                        mainThreadHandler.post(() -> {
+                            solutionsTextView.setText("❌ Aucune solution trouvée pour: '" + originalDiseaseName + "'\n\n" + availableDiseases.toString());
+                        });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "❌ FIRESTORE COLLECTION QUERY FAILED", e);
+                    mainThreadHandler.post(() -> {
+                        solutionsTextView.setText("❌ Erreur Firestore: " + e.getMessage());
+                    });
+                });
+    }
+
+    // Alternative method: Search by field value instead of document ID
+    private void searchBySolutionField(String diseaseName) {
+        Log.d(TAG, "=== SEARCHING BY FIELD VALUE ===");
+
+        // If your documents have a "name" field, use this approach
+        db.collection("maladies")
+                .whereEqualTo("name", diseaseName) // Adjust field name as needed
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        QueryDocumentSnapshot document = (QueryDocumentSnapshot) queryDocumentSnapshots.getDocuments().get(0);
+                        String solution = document.getString("solution");
+
+                        if (solution != null && !solution.trim().isEmpty()) {
+                            Log.d(TAG, "✅ Solution found by field search");
+                            mainThreadHandler.post(() -> {
+                                solutionsTextView.setText("✅ Solution trouvée:\n\n" + solution);
+                            });
+                        }
+                    } else {
+                        Log.d(TAG, "No documents found with name field matching: " + diseaseName);
+                        // Fallback to document ID search
+                        searchAllMaladiesDocuments(diseaseName);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Field search failed", e);
+                    // Fallback to document ID search
+                    searchAllMaladiesDocuments(diseaseName);
+                });
+    }
+
+    private String normalizeDiseaseName(String diseaseName) {
+        if (diseaseName == null) return "";
+
+        String normalized = diseaseName.toLowerCase()
+                .trim()
+                .replaceAll("\\s+", " ")  // Replace multiple spaces with single space
+                .replaceAll("[^a-z0-9\\s]", "");  // Remove special characters except spaces
+
+        Log.d(TAG, "Normalized '" + diseaseName + "' -> '" + normalized + "'");
+        return normalized;
+    }
+
+    private void updateStatus(String result, String solution) {
+        Log.d(TAG, "Updating status. Result: " + result + ", Solution: " + solution);
+        mainThreadHandler.post(() -> {
+            resultTextView.setText(result);
+            solutionsTextView.setText(solution);
+        });
+    }
+
+    private void showError(String message) {
+        Log.e(TAG, "Showing error: " + message);
+        mainThreadHandler.post(() -> {
+            resultTextView.setText("Erreur: " + message);
+            solutionsTextView.setText("Impossible d'afficher les solutions");
+            Toast.makeText(PredictionActivity.this, message, Toast.LENGTH_LONG).show();
+        });
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Arrête l'executor pour éviter les fuites de threads
-        if (executorService != null && !executorService.isShutdown()) {
-            executorService.shutdown();
-        }
+        Log.d(TAG, "Activity destroyed");
+        executorService.shutdown();
     }
 }

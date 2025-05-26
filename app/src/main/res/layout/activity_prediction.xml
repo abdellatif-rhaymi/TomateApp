@@ -77,24 +77,24 @@
     </LinearLayout>
 
     <!-- Zone pour les solutions (à développer plus tard) -->
+
+    <!-- Bouton retour -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="100dp"
         android:layout_weight="1">
 
         <TextView
             android:id="@+id/solutions_text_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Les recommandations de traitement apparaîtront ici après analyse..."
-            android:textSize="14sp"
-            android:textColor="#555555"
             android:padding="12dp"
-            />
+            android:text="Les recommandations de traitement apparaîtront ici après analyse..."
+            android:textColor="#555555"
+            android:textSize="14sp" />
 
     </ScrollView>
 
-    <!-- Bouton retour -->
     <Button
         android:id="@+id/back_button"
         android:layout_width="match_parent"

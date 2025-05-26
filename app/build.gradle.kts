@@ -108,4 +108,5 @@ dependencies {
     implementation("com.google.firebase:firebase-auth:21.0.1")
     implementation("com.firebaseui:firebase-ui-firestore:8.0.0")
     implementation("com.github.bumptech.glide:glide:4.12.0")
+    implementation("com.google.firebase:firebase-database:20.0.0")
 }
