@@ -11,13 +11,8 @@ import android.widget.Button; // Importe Button si tu as analyzeAgainButton
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.example.tomatosapp.BuildConfig; // Adapte si ton package est différent
 
 import androidx.appcompat.app.AppCompatActivity;
-import java.util.concurrent.TimeUnit; // Ajoute cet import
-
-// ... dans onCreate, avant de créer Retrofit ...
-
 
 import com.example.tomatosapp.R; // Adapte ton package R
 // Importe les nouvelles classes réseau
@@ -41,9 +36,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-import java.util.concurrent.TimeUnit; // Ajoute cet import
 
-// ... dans onCreate, avant de créer Retrofit ...
 
 public class PredictionActivity extends AppCompatActivity {
     private static final String TAG = "PredictionActivity";
@@ -57,21 +50,18 @@ public class PredictionActivity extends AppCompatActivity {
     // --- NOUVEAU : Pour l'appel API ---
     private PredictionApiService apiService;
     // !!! REMPLACE PAR TON URL CLOUD RUN EXACTE !!!
-    //private static final String BASE_URL = "https://tomato-disease-service-299287005031.europe-west1.run.app/";
+    private static final String BASE_URL = "https://tomato-disease-service-299287005031.europe-west1.run.app/";
 
     // Executor pour les tâches d'arrière-plan (comme la préparation de l'image)
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     // Handler pour poster les résultats sur le thread UI
     private final Handler mainThreadHandler = new Handler(Looper.getMainLooper());
 
-    private static final String BASE_URL = BuildConfig.API_BASE_URL;
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prediction);
+
         imageView = findViewById(R.id.prediction_image_view);
         resultTextView = findViewById(R.id.result_text_view);
         // analyzeAgainButton = findViewById(R.id.analyze_again_button); // Décommente si besoin
@@ -79,21 +69,16 @@ public class PredictionActivity extends AppCompatActivity {
         // Initialisation de Retrofit
         HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY); // Loggue les détails des requêtes/réponses
-
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(loggingInterceptor)
-                .connectTimeout(60, TimeUnit.SECONDS) // Timeout de connexion: 60 secondes
-                .readTimeout(60, TimeUnit.SECONDS)    // Timeout de lecture: 60 secondes
-                .writeTimeout(60, TimeUnit.SECONDS)   // Timeout d'écriture: 60 secondes
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL) // <- Utilise la variable ici
+                .baseUrl(BASE_URL)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         apiService = retrofit.create(PredictionApiService.class);
-
         // --- FIN Initialisation Retrofit ---
 
         String uriString = getIntent().getStringExtra("photo_uri");
