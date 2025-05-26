@@ -69,6 +69,11 @@ public class MainActivity extends AppCompatActivity {
                 } else if (id == R.id.nav_profile) {
                     startActivity(new Intent(MainActivity.this, ProfileActivity.class));
                     return true;
+                }else if (id == R.id.nav_environment) {
+                        startActivity(new Intent(MainActivity.this, EnvironmentActivity.class));
+                        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                        return true;
+
                 } else if (id == R.id.nav_chatbot) {
                     startActivity(new Intent(MainActivity.this, ChatbotActivity.class));
                     return true;

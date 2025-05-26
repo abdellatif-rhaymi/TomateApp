@@ -11,6 +11,11 @@
         android:title="Profil"/>
 
     <item
+        android:id="@+id/nav_environment"
+        android:icon="@drawable/ic_environment"
+        android:title="Environnement"/>
+
+    <item
         android:id="@+id/nav_chatbot"
         android:icon="@drawable/ic_chat"
         android:title="Assistant"/>

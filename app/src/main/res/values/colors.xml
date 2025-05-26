@@ -96,5 +96,7 @@
     <color name="m3_primary">#6750A4</color>
     <color name="m3_outline">#79747E</color>
     <color name="status_active">#57E791</color>
+    <color name="light_gray_background">#F5F5F5</color>
+    <color name="gray_text">#607D8B</color>
 
 </resources>
