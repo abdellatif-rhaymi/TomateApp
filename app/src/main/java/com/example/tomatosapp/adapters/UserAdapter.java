@@ -78,10 +78,10 @@ public class UserAdapter extends FirestoreRecyclerAdapter<User, UserAdapter.User
 
             if (userRole.equals("admin")) {
                 displayRole = "Administrateur";
-                chipColor = R.color.admin_primary;
+                chipColor = R.color.admin_card_primary;
             } else {
                 displayRole = "Utilisateur";
-                chipColor = R.color.admin_secondary;
+                chipColor = R.color.admin_card_secondary;
             }
 
             role.setText("Rôle: " + displayRole);

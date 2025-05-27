@@ -33,7 +33,7 @@
                 android:id="@+id/user_email"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/admin_text_primary"
+                android:textColor="@color/teal_700"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -42,7 +42,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="@color/admin_text_secondary"
+                android:textColor="@color/teal_200"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -53,6 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="Active"
+            android:textColor="@color/white"
             app:chipBackgroundColor="@color/status_active" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

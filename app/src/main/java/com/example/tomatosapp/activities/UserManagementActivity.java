@@ -62,7 +62,7 @@ public class UserManagementActivity extends AppCompatActivity {
 
                         // Now get admin count
                         db.collection("utilisateurs")
-                                .whereEqualTo("role", "admin")
+                                .whereEqualTo("Role", "admin")
                                 .get()
                                 .addOnCompleteListener(adminTask -> {
                                     if (adminTask.isSuccessful()) {

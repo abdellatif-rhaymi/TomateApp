@@ -41,7 +41,13 @@ public class MainActivity extends AppCompatActivity {
         bottomNav = findViewById(R.id.bottom_navigation);
 
         // Set welcome message
-        welcomeText.setText(getString(R.string.welcome_message, user.getDisplayName()));
+        String userName = user.getDisplayName() != null && !user.getDisplayName().isEmpty()
+                ? user.getDisplayName()
+                : user.getEmail() != null
+                ? user.getEmail()
+                : "Guest";
+
+        welcomeText.setText(getString(R.string.welcome_message, userName));
 
         // Logout button
 

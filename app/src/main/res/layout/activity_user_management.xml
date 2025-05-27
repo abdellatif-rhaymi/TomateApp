@@ -94,7 +94,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/admin_primary_light"
+                            android:textColor="@color/light_blue"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -102,7 +102,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Administrateurs"
-                            android:textColor="@color/admin_text_secondary"
+                            android:textColor="@color/light_blue"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>

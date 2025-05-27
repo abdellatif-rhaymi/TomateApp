@@ -7,8 +7,8 @@ import java.util.Objects;
 public class User {
     private String userId;
     private String email;
-    private String nom;
-    private String role;
+    private String Nom;
+    private String Role;
     private Timestamp createdAt;
     private boolean emailVerified;
 
@@ -16,11 +16,11 @@ public class User {
         // Required for Firestore
     }
 
-    public User(String userId, String email, String nom, String role, Timestamp createdAt, boolean emailVerified) {
+    public User(String userId, String email, String Nom, String Role, Timestamp createdAt, boolean emailVerified) {
         this.userId = userId;
         this.email = email;
-        this.nom = nom;
-        this.role = role;
+        this.Nom = Nom;
+        this.Role = Role;
         this.createdAt = createdAt;
         this.emailVerified = emailVerified;
     }
@@ -43,19 +43,19 @@ public class User {
     }
 
     public String getNom() {
-        return nom;
+        return Nom;
     }
 
     public void setNom(String nom) {
-        this.nom = nom;
+        this.Nom = nom;
     }
 
     public String getRole() {
-        return role;
+        return Role;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public void setRole(String Role) {
+        this.Role = Role;
     }
 
     public Timestamp getCreatedAt() {
@@ -82,14 +82,14 @@ public class User {
         return emailVerified == user.emailVerified &&
                 Objects.equals(userId, user.userId) &&
                 Objects.equals(email, user.email) &&
-                Objects.equals(nom, user.nom) &&
-                Objects.equals(role, user.role) &&
+                Objects.equals(Nom, user.Nom) &&
+                Objects.equals(Role, user.Role) &&
                 Objects.equals(createdAt, user.createdAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userId, email, nom, role, createdAt, emailVerified);
+        return Objects.hash(userId, email, Nom, Role, createdAt, emailVerified);
     }
 
     @Override
@@ -97,8 +97,8 @@ public class User {
         return "User{" +
                 "userId='" + userId + '\'' +
                 ", email='" + email + '\'' +
-                ", nom='" + nom + '\'' +
-                ", role='" + role + '\'' +
+                ", Nom='" + Nom + '\'' +
+                ", role='" + Role + '\'' +
                 ", createdAt=" + createdAt +
                 ", emailVerified=" + emailVerified +
                 '}';
