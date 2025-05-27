@@ -1,9 +1,18 @@
 package com.example.tomatosapp.model;
 
-import com.google.firebase.Timestamp;
-import com.google.firebase.firestore.DocumentId;
-import com.google.firebase.firestore.ServerTimestamp;
+
 public class UserFeedback {
+
+    private String id;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     private String message;
     private int rating;
     private com.google.firebase.Timestamp timestamp;

@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,6 +27,9 @@ public class UserManagementActivity extends AppCompatActivity {
     private UserAdapter userAdapter;
     private FirebaseFirestore db;
 
+    private TextView adminUsers;
+    private TextView totalUsers;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,28 +39,44 @@ public class UserManagementActivity extends AppCompatActivity {
         usersRecyclerView = findViewById(R.id.users_recycler_view);
         progressBar = findViewById(R.id.progressBar);
 
+        adminUsers = findViewById(R.id.admin_users);
+        totalUsers = findViewById(R.id.total_users);
+
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Debug: Vérifier les données Firestore
-        debugFirestoreData();
+        // Load user counts
+        loadUserCounts();
 
         setupRecyclerView();
     }
 
-    private void debugFirestoreData() {
+    private void loadUserCounts() {
+        // Get total users count
         db.collection("utilisateurs")
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        Log.d(TAG, "Nombre d'utilisateurs: " + task.getResult().size());
-                        task.getResult().forEach(doc -> {
-                            Log.d(TAG, "ID: " + doc.getId() +
-                                    " | Email: " + doc.getString("email") +
-                                    " | Role: " + doc.getString("role"));
-                        });
+                        int totalCount = task.getResult().size();
+                        totalUsers.setText(String.valueOf(totalCount));
+
+                        // Now get admin count
+                        db.collection("utilisateurs")
+                                .whereEqualTo("role", "admin")
+                                .get()
+                                .addOnCompleteListener(adminTask -> {
+                                    if (adminTask.isSuccessful()) {
+                                        int adminCount = adminTask.getResult().size();
+                                        adminUsers.setText(String.valueOf(adminCount));
+                                    } else {
+                                        Log.w(TAG, "Error getting admin count", adminTask.getException());
+                                        adminUsers.setText("0");
+                                    }
+                                });
                     } else {
-                        Log.w(TAG, "Erreur de chargement Firestore", task.getException());
+                        Log.w(TAG, "Error getting total user count", task.getException());
+                        totalUsers.setText("0");
+                        adminUsers.setText("0");
                     }
                 });
     }
@@ -96,6 +116,8 @@ public class UserManagementActivity extends AppCompatActivity {
             userAdapter.startListening();
             progressBar.setVisibility(View.GONE);
         }
+        // Refresh counts when activity resumes
+        loadUserCounts();
     }
 
     @Override

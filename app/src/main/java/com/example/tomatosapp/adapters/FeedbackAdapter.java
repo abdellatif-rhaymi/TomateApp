@@ -15,6 +15,7 @@ import com.example.tomatosapp.model.UserFeedback;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.chip.Chip;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -82,6 +83,10 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
         private final TextView messageView;
         private final TextView dateView;
         private final MaterialCardView cardView;
+        private final Chip statusChip;
+        private final View btnResolve;
+        private final View btnDelete;
+
 
         public FeedbackHolder(View itemView) {
             super(itemView);
@@ -90,6 +95,10 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
             ratingBar = itemView.findViewById(R.id.rating_bar);
             messageView = itemView.findViewById(R.id.feedback_message);
             dateView = itemView.findViewById(R.id.timestamp);
+            statusChip = itemView.findViewById(R.id.status_chip);
+            btnResolve = itemView.findViewById(R.id.btn_resolve);
+            btnDelete = itemView.findViewById(R.id.btn_delete);
+
 
             itemView.setOnClickListener(v -> handleClick());
         }
@@ -153,13 +162,18 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
                     dateView.setText("Date non disponible");
                 }
 
-                // Couleur de la carte selon le statut
-                int backgroundColor = feedback.isResolved() ?
-                        0xFFE8F5E9 : 0xFFFFFFFF;
-                cardView.setCardBackgroundColor(backgroundColor);
+                // Update status chip
+                if (feedback.isResolved()) {
+                    statusChip.setText("Résolu");
+                    statusChip.setChipBackgroundColorResource(R.color.status_resolved);
+                } else {
+                    statusChip.setText("En attente");
+                    statusChip.setChipBackgroundColorResource(R.color.status_pending);
+                }
 
-                // Rendre visible
-                itemView.setVisibility(View.VISIBLE);
+                // Update button visibility/text based on status
+                btnResolve.setVisibility(View.VISIBLE);
+                btnDelete.setVisibility(View.VISIBLE);
 
             } catch (Exception e) {
                 Log.e(TAG, "Error in bind method for position " + position, e);
@@ -175,6 +189,8 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
             dateView.setText("");
             cardView.setCardBackgroundColor(0xFFFFFFFF);
             itemView.setVisibility(View.VISIBLE);
+            statusChip.setText("Erreur");
+            statusChip.setChipBackgroundColorResource(R.color.status_error);
         }
     }
 

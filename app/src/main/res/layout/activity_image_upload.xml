@@ -1,104 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/admin_background"
     tools:context=".activities.ImageUploadActivity">
 
-    <TextView
-        android:id="@+id/title_text_view"
-        android:layout_width="0dp"
+    <!-- Header avec icône -->
+    <LinearLayout
+        android:id="@+id/header_layout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
         android:layout_marginTop="24dp"
-        android:layout_marginEnd="16dp"
-        android:text="Détection de maladies de tomates"
-        android:textAlignment="center"
-        android:textSize="24sp"
-        android:textStyle="bold"
+        android:gravity="center"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <ImageView
-        android:id="@+id/preview_image_view"
-        android:layout_width="372dp"
-        android:layout_height="364dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
+        <ImageView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_tomato" />
+
+        <TextView
+            android:id="@+id/title_text_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Détection de maladies\nde tomates"
+            android:textAlignment="center"
+            android:textColor="@color/dark_green"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- CardView pour l'image preview -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/image_card"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="24dp"
         android:layout_marginBottom="16dp"
-        android:background="#F5F5F5"
-        android:contentDescription="Aperçu de l'image"
-        android:scaleType="centerCrop"
-        app:layout_constraintBottom_toTopOf="@+id/guideline"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.428"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/title_text_view"
-        app:layout_constraintVertical_bias="0.0" />
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.7" />
-
-    <Button
-        android:id="@+id/gallery_button"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="Sélectionner une image"
-        android:backgroundTint="@color/dark_blue"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toTopOf="@+id/buttons_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/preview_image_view" />
+        app:layout_constraintTop_toBottomOf="@+id/header_layout">
 
-    <Button
-        android:id="@+id/camera_button"
+        <ImageView
+            android:id="@+id/preview_image_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/light_gray"
+            android:contentDescription="Aperçu de l'image"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_placeholder" />
+    </androidx.cardview.widget.CardView>
+
+    <!-- Conteneur pour les boutons -->
+    <LinearLayout
+        android:id="@+id/buttons_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:text="Prendre une photo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/gallery_button" />
-
-    <Button
-        android:id="@+id/analyze_button"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:enabled="false"
-        android:text="Analyser l'image"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/camera_button"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintStart_toStartOf="parent">
 
-    <Button
-        android:id="@+id/feedback_button"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:backgroundTint="@color/error_red"
-        android:text="Ajouter un Feedback"
-        android:textColor="@color/white"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/analyze_button"/>
+        <!-- Bouton Galerie -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/gallery_button"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="8dp"
+            android:text="Sélectionner une image"
+            android:textColor="@color/dark_green"
+            app:icon="@drawable/ic_gallery"
+            app:iconGravity="start"
+            app:iconTint="@color/dark_green"
+            app:strokeColor="@color/dark_green"
+            app:strokeWidth="1dp" />
+
+        <!-- Bouton Caméra -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/camera_button"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="8dp"
+            android:text="Prendre une photo"
+            android:textColor="@color/dark_green"
+            app:icon="@drawable/ic_camera"
+            app:iconGravity="start"
+            app:iconTint="@color/dark_green"
+            app:strokeColor="@color/dark_green"
+            app:strokeWidth="1dp" />
+
+        <!-- Bouton Analyser -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/analyze_button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="8dp"
+            android:enabled="false"
+            android:textSize="16dp"
+            android:textColor="@color/admin_primary"
+            android:text="Analyser l'image"
+            app:backgroundTint="@color/admin_accent"
+            app:icon="@drawable/ic_analyze"
+            app:iconGravity="start"
+            app:iconTint="@color/admin_primary" />
+
+        <!-- Bouton Feedback -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/feedback_button"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ajouter un Feedback"
+            android:textColor="@color/error_red"
+            app:icon="@drawable/ic_feedbacks"
+            app:iconGravity="start"
+            app:iconTint="@color/error_red" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
