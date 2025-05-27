@@ -1,7 +1,7 @@
 package com.example.tomatosapp.activities;
 
 import android.os.Bundle;
-import android.view.View;
+
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -21,6 +21,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+
+import okhttp3.OkHttpClient;
+
 
 public class ChatbotActivity extends AppCompatActivity {
 
@@ -31,6 +36,7 @@ public class ChatbotActivity extends AppCompatActivity {
     private List<ChatMessage> chatMessages;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
+    private OkHttpClient httpClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +46,12 @@ public class ChatbotActivity extends AppCompatActivity {
         // Initialize Firebase
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+
+        // Initialize HTTP client
+        httpClient = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build();
 
         // Initialize views
         chatRecyclerView = findViewById(R.id.chat_recycler_view);
@@ -53,34 +65,183 @@ public class ChatbotActivity extends AppCompatActivity {
         chatRecyclerView.setAdapter(chatAdapter);
 
         // Add welcome message
-        addBotMessage("🍅 Bonjour! Je suis votre assistant spécialisé dans la protection des tomates et leurs maladies. " +
-                "Je peux vous aider avec les maladies, parasites, carences nutritionnelles et conseils de culture. " +
+        addBotMessage("🍅 Bonjour! Je suis votre assistant IA gratuit spécialisé dans la culture des tomates. " +
+                "Je peux vous aider avec les maladies, parasites, techniques de culture, et conseils pratiques. " +
                 "Posez-moi vos questions!");
 
         sendButton.setOnClickListener(v -> sendMessage());
-
-        // Load previous chat history
         loadChatHistory();
     }
 
     private void sendMessage() {
         String message = messageInput.getText().toString().trim();
         if (!message.isEmpty()) {
-            // Add user message
             addUserMessage(message);
             messageInput.setText("");
 
-            // Process and generate bot response
-            generateBotResponse(message);
+            // Utiliser l'API gratuite choisie
+            generateBotResponseWithFreeAPI(message);
         }
+    }
+
+    // OPTION 3: API locale avec base de connaissances (TOTALEMENT GRATUITE)
+    private void generateBotResponseWithLocalKnowledge(String userMessage) {
+        final String query = userMessage.toLowerCase().trim();
+        String response = "";
+
+        // Base de connaissances étendue et améliorée
+        if (containsAny(query, "mildiou", "blight", "phytophthora", "taches brunes feuilles")) {
+            response = "🍄 **MILDIOU - Phytophthora infestans**\n\n" +
+                    "**Symptômes:**\n" +
+                    "• Taches brunes irrégulières sur feuilles\n" +
+                    "• Duvet blanc sous les feuilles par temps humide\n" +
+                    "• Brunissement et dessèchement rapide\n" +
+                    "• Taches noires sur tiges et fruits\n\n" +
+                    "**Traitement naturel:**\n" +
+                    "• Bouillie bordelaise (cuivre) en prévention\n" +
+                    "• Décoction de prêle (renforce les tissus)\n" +
+                    "• Bicarbonate de soude (1g/L d'eau)\n" +
+                    "• Éliminer immédiatement les parties touchées\n\n" +
+                    "**Prévention:**\n" +
+                    "• Espacer les plants (60cm minimum)\n" +
+                    "• Arroser au pied uniquement\n" +
+                    "• Pailler le sol pour éviter les éclaboussures\n" +
+                    "• Planter des variétés résistantes\n" +
+                    "• Éviter l'arrosage en soirée";
+        }
+        else if (containsAny(query, "puceron", "pucerons", "insectes verts", "petits insectes")) {
+            response = "🐛 **PUCERONS**\n\n" +
+                    "**Identification:**\n" +
+                    "• Petits insectes verts, noirs ou blancs\n" +
+                    "• Se regroupent sous les feuilles\n" +
+                    "• Feuilles qui se recroquevillent\n" +
+                    "• Présence de miellat (substance collante)\n\n" +
+                    "**Traitements naturels:**\n" +
+                    "• Savon noir: 2 cuillères à soupe/L d'eau\n" +
+                    "• Huile de neem: efficace et bio\n" +
+                    "• Jet d'eau puissant le matin\n" +
+                    "• Coccinelles (prédateurs naturels)\n\n" +
+                    "**Répulsifs naturels:**\n" +
+                    "• Planter basilic et œillets d'Inde à proximité\n" +
+                    "• Pulvérisation d'ail macéré\n" +
+                    "• Purins d'ortie dilués";
+        }
+        else if (containsAny(query, "jaunissement", "feuilles jaunes", "chlorose", "carence")) {
+            response = "💛 **JAUNISSEMENT DES FEUILLES**\n\n" +
+                    "**Diagnostic selon la localisation:**\n\n" +
+                    "**Feuilles du bas qui jaunissent:**\n" +
+                    "• Normal en fin de saison\n" +
+                    "• Manque d'azote si généralisé\n" +
+                    "• Solution: engrais azoté modéré\n\n" +
+                    "**Jaunissement entre les nervures:**\n" +
+                    "• Carence en magnésium\n" +
+                    "• Solution: sel d'Epsom (sulfate de magnésium)\n" +
+                    "• Dosage: 1 cuillère à café/L d'eau\n\n" +
+                    "**Jeunes feuilles jaunes:**\n" +
+                    "• Carence en fer (chlorose ferrique)\n" +
+                    "• Solution: chélate de fer\n" +
+                    "• Améliorer le drainage si sol trop humide\n\n" +
+                    "**Jaunissement avec flétrissement:**\n" +
+                    "• Excès d'eau ou problème racinaire\n" +
+                    "• Réduire l'arrosage et vérifier le drainage";
+        }
+        else if (containsAny(query, "tomates qui ne poussent pas", "croissance lente", "petites tomates")) {
+            response = "🌱 **PROBLÈMES DE CROISSANCE**\n\n" +
+                    "**Causes possibles:**\n\n" +
+                    "**Sol pauvre:**\n" +
+                    "• Apporter compost bien décomposé\n" +
+                    "• Engrais organique NPK équilibré\n" +
+                    "• Paillis nutritif (compost, fumier)\n\n" +
+                    "**Manque de lumière:**\n" +
+                    "• Minimum 6h de soleil direct\n" +
+                    "• Tailler les branches qui font de l'ombre\n" +
+                    "• Éviter les emplacements trop ombragés\n\n" +
+                    "**Stress hydrique:**\n" +
+                    "• Arrosage régulier et profond\n" +
+                    "• Pailler pour conserver l'humidité\n" +
+                    "• Éviter les arrosages superficiels\n\n" +
+                    "**Températures inadéquates:**\n" +
+                    "• Optimum: 20-25°C le jour, 15-18°C la nuit\n" +
+                    "• Protection contre le froid/canicule";
+        }
+        else if (containsAny(query, "pollinisation", "fleurs tombent", "pas de fruits", "nouaison")) {
+            response = "🌸 **PROBLÈMES DE POLLINISATION**\n\n" +
+                    "**Causes de chute des fleurs:**\n\n" +
+                    "**Températures extrêmes:**\n" +
+                    "• Trop chaud (>32°C): ombrage à midi\n" +
+                    "• Trop froid (<15°C): protection nocturne\n" +
+                    "• Optimum: 20-25°C\n\n" +
+                    "**Stress hydrique:**\n" +
+                    "• Arrosage irrégulier = chute des fleurs\n" +
+                    "• Maintenir humidité constante du sol\n\n" +
+                    "**Excès d'azote:**\n" +
+                    "• Trop de feuillage, peu de fleurs\n" +
+                    "• Réduire les engrais azotés\n" +
+                    "• Privilégier phosphore et potassium\n\n" +
+                    "**Solutions pour améliorer la pollinisation:**\n" +
+                    "• Secouer délicatement les plants le matin\n" +
+                    "• Pollinisation manuelle avec pinceau\n" +
+                    "• Attirer les pollinisateurs (fleurs mellifères à proximité)";
+        }
+        else if (containsAny(query, "culture", "plantation", "quand planter", "comment cultiver")) {
+            response = "🌱 **GUIDE DE CULTURE DES TOMATES**\n\n" +
+                    "**Plantation:**\n" +
+                    "• Période: après les dernières gelées (mi-mai)\n" +
+                    "• Distance: 60-80cm entre plants\n" +
+                    "• Profondeur: enterrer 2/3 de la tige\n" +
+                    "• Exposition: plein soleil, à l'abri du vent\n\n" +
+                    "**Préparation du sol:**\n" +
+                    "• Sol riche, bien drainé, pH 6-7\n" +
+                    "• Apport de compost ou fumier décomposé\n" +
+                    "• Bêchage profond (20-30cm)\n\n" +
+                    "**Entretien régulier:**\n" +
+                    "• Arrosage: 2-3 fois/semaine au pied\n" +
+                    "• Paillage: paille, tontes, compost\n" +
+                    "• Tuteurage: indispensable dès plantation\n" +
+                    "• Taille des gourmands: hebdomadaire\n" +
+                    "• Suppression feuilles basses touchant le sol\n\n" +
+                    "**Fertilisation:**\n" +
+                    "• Engrais riche en potassium pour la fructification\n" +
+                    "• Apports réguliers mais modérés";
+        }
+        else {
+            response = "🍅 **ASSISTANT TOMATES - IA GRATUITE**\n\n" +
+                    "Je suis votre expert gratuit en culture de tomates! 🤖\n\n" +
+                    "**Mes spécialités:**\n" +
+                    "🦠 **Maladies:** Mildiou, alternariose, fusariose\n" +
+                    "🐛 **Parasites:** Pucerons, araignées rouges, aleurodes\n" +
+                    "💛 **Carences:** Azote, potassium, magnésium, fer\n" +
+                    "🌸 **Fructification:** Pollinisation, nouaison\n" +
+                    "🌱 **Culture:** Plantation, entretien, taille\n" +
+                    "🍅 **Variétés:** Conseils selon votre région\n\n" +
+                    "**Exemples de questions:**\n" +
+                    "• 'Mes feuilles ont des taches brunes'\n" +
+                    "• 'Les fleurs tombent sans faire de fruits'\n" +
+                    "• 'Mes tomates jaunissent'\n" +
+                    "• 'Comment traiter les pucerons naturellement?'\n\n" +
+                    "Décrivez-moi votre problème en détail! 🔍";
+        }
+
+        addBotMessage(response);
+    }
+
+    private void generateBotResponseWithFreeAPI(String userMessage) {
+        generateBotResponseWithLocalKnowledge(userMessage);
+    }
+
+    private boolean containsAny(String text, String... keywords) {
+        for (String keyword : keywords) {
+            if (text.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void addUserMessage(String message) {
         chatMessages.add(new ChatMessage(message, true));
         chatAdapter.notifyItemInserted(chatMessages.size() - 1);
         chatRecyclerView.smoothScrollToPosition(chatMessages.size() - 1);
-
-        // Save to Firestore
         saveMessageToFirestore(message, true);
     }
 
@@ -89,8 +250,7 @@ public class ChatbotActivity extends AppCompatActivity {
         chatAdapter.notifyItemInserted(chatMessages.size() - 1);
         chatRecyclerView.smoothScrollToPosition(chatMessages.size() - 1);
 
-        // Save to Firestore
-        if (!message.contains("Bonjour! Je suis votre assistant")) { // Don't save welcome message repeatedly
+        if (!message.contains("Bonjour! Je suis votre assistant")) {
             saveMessageToFirestore(message, false);
         }
     }
@@ -113,7 +273,6 @@ public class ChatbotActivity extends AppCompatActivity {
         chatData.put("timestamp", System.currentTimeMillis());
         chatData.put("date", new java.util.Date());
 
-        // Utiliser l'email comme ID du document utilisateur
         db.collection("utilisateurs").document(userEmail)
                 .collection("chats").add(chatData)
                 .addOnSuccessListener(documentReference -> {
@@ -129,12 +288,12 @@ public class ChatbotActivity extends AppCompatActivity {
             return;
         }
 
-        String userEmail = auth.getCurrentUser().getEmail();
+        final String userEmail = auth.getCurrentUser().getEmail();
 
         db.collection("utilisateurs").document(userEmail)
                 .collection("chats")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
-                .limit(50) // Limiter aux 50 derniers messages
+                .limit(50)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     chatMessages.clear();
@@ -152,168 +311,11 @@ public class ChatbotActivity extends AppCompatActivity {
                 });
     }
 
-    private void generateBotResponse(String userMessage) {
-        String query = userMessage.toLowerCase().trim();
-        String response = "";
-
-        // Maladies fongiques
-        if (containsAny(query, "mildiou", "blight", "phytophthora")) {
-            response = "🍄 **MILDIOU (Phytophthora infestans)**\n\n" +
-                    "**Symptômes:** Taches brunes sur feuilles avec duvet blanc, brunissement des tiges\n\n" +
-                    "**Traitement:**\n" +
-                    "• Bouillie bordelaise (cuivre) en prévention\n" +
-                    "• Éliminer parties infectées\n" +
-                    "• Améliorer aération entre plants\n" +
-                    "• Arroser au pied, éviter les feuilles\n" +
-                    "• Paillis pour éviter éclaboussures\n\n" +
-                    "**Prévention:** Rotation des cultures, variétés résistantes";
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (httpClient != null) {
+            httpClient.dispatcher().executorService().shutdown();
         }
-        else if (containsAny(query, "alternariose", "alternaria", "tache concentrique")) {
-            response = "🔄 **ALTERNARIOSE (Alternaria solani)**\n\n" +
-                    "**Symptômes:** Taches brunes concentriques sur feuilles âgées\n\n" +
-                    "**Traitement:**\n" +
-                    "• Fongicides à base de cuivre\n" +
-                    "• Suppression feuilles infectées\n" +
-                    "• Renforcement plante (potassium)\n" +
-                    "• Éviter stress hydrique";
-        }
-        else if (containsAny(query, "septoriose", "septoria", "tache grise")) {
-            response = "⚪ **SEPTORIOSE (Septoria lycopersici)**\n\n" +
-                    "**Symptômes:** Petites taches grises avec centre clair\n\n" +
-                    "**Traitement:**\n" +
-                    "• Fongicides préventifs\n" +
-                    "• Élimination feuilles touchées\n" +
-                    "• Espacement plants pour aération";
-        }
-
-        // Parasites
-        else if (containsAny(query, "puceron", "aphid", "insecte vert")) {
-            response = "🐛 **PUCERONS**\n\n" +
-                    "**Identification:** Petits insects verts/noirs sous feuilles\n\n" +
-                    "**Traitement:**\n" +
-                    "• Savon noir dilué (pulvérisation)\n" +
-                    "• Huile de neem\n" +
-                    "• Coccinelles (auxiliaires)\n" +
-                    "• Jet d'eau pour déloger\n\n" +
-                    "**Prévention:** Plantes compagnes (basilic, œillets d'Inde)";
-        }
-        else if (containsAny(query, "araignée", "spider", "tétranyque", "acarien")) {
-            response = "🕷️ **ARAIGNÉES ROUGES (Tétranyques)**\n\n" +
-                    "**Symptômes:** Feuilles jaunies, toiles fines, points jaunes\n\n" +
-                    "**Traitement:**\n" +
-                    "• Augmenter humidité ambiante\n" +
-                    "• Douches fréquentes sous feuilles\n" +
-                    "• Acaricides naturels (huile blanche)\n" +
-                    "• Prédateurs naturels (phytoséiules)";
-        }
-        else if (containsAny(query, "aleurode", "mouche blanche", "whitefly")) {
-            response = "🦟 **ALEURODES (Mouches blanches)**\n\n" +
-                    "**Symptômes:** Petites mouches blanches, feuilles collantes\n\n" +
-                    "**Traitement:**\n" +
-                    "• Pièges jaunes englués\n" +
-                    "• Savon insecticide\n" +
-                    "• Huile de neem\n" +
-                    "• Encarsia formosa (auxiliaire)";
-        }
-
-        // Carences nutritionnelles
-        else if (containsAny(query, "jaun", "yellow", "chlorose", "carence")) {
-            response = "💛 **JAUNISSEMENT DES FEUILLES**\n\n" +
-                    "**Causes possibles:**\n" +
-                    "• Carence azote: Jaunissement général\n" +
-                    "• Carence magnésium: Jaunissement entre nervures\n" +
-                    "• Carence fer: Jeunes feuilles jaunes\n" +
-                    "• Excès d'eau: Jaunissement + flétrissement\n\n" +
-                    "**Solutions:**\n" +
-                    "• Engrais équilibré NPK\n" +
-                    "• Sulfate de magnésium (sel d'Epsom)\n" +
-                    "• Chélate de fer si sol calcaire\n" +
-                    "• Drainage si excès d'eau";
-        }
-
-        // Problèmes de fructification
-        else if (containsAny(query, "fleur", "flower", "fruit", "pollinisation", "nouaison")) {
-            response = "🌸 **PROBLÈMES DE FRUCTIFICATION**\n\n" +
-                    "**Chute des fleurs:**\n" +
-                    "• Températures extrêmes (>32°C ou <15°C)\n" +
-                    "• Stress hydrique\n" +
-                    "• Excès d'azote\n\n" +
-                    "**Solutions:**\n" +
-                    "• Ombrage si trop chaud\n" +
-                    "• Arrosage régulier\n" +
-                    "• Réduire engrais azoté\n" +
-                    "• Pollinisation manuelle (pinceau)\n" +
-                    "• Secouer plants le matin";
-        }
-        else if (containsAny(query, "pourri", "rot", "moisissure", "botrytis")) {
-            response = "🦠 **POURRITURE DES FRUITS**\n\n" +
-                    "**Types courants:**\n" +
-                    "• Pourriture grise (Botrytis): Duvet gris\n" +
-                    "• Pourriture apicale: Tache noire au bout\n\n" +
-                    "**Traitement:**\n" +
-                    "• Éliminer fruits atteints\n" +
-                    "• Réduire humidité\n" +
-                    "• Calcium si pourriture apicale\n" +
-                    "• Fongicides préventifs\n" +
-                    "• Éviter blessures aux fruits";
-        }
-
-        // Conseils généraux de culture
-        else if (containsAny(query, "culture", "plantation", "conseil", "comment", "quand")) {
-            response = "🌱 **CONSEILS DE CULTURE**\n\n" +
-                    "**Plantation:**\n" +
-                    "• Distance: 50-60cm entre plants\n" +
-                    "• Sol: Riche, bien drainé, pH 6-7\n" +
-                    "• Exposition: Soleil, à l'abri du vent\n\n" +
-                    "**Entretien:**\n" +
-                    "• Arrosage: Régulier au pied\n" +
-                    "• Paillage: Conserver humidité\n" +
-                    "• Tuteurage: Indispensable\n" +
-                    "• Taille: Gourmands et feuilles basses\n\n" +
-                    "**Fertilisation:** NPK équilibré + compost";
-        }
-
-        // Recherche par symptômes
-        else if (containsAny(query, "tache", "spot", "marque")) {
-            if (containsAny(query, "brun", "brown", "noir", "black")) {
-                response = "🔍 **TACHES BRUNES/NOIRES**\n\n" +
-                        "**Localisations possibles:**\n" +
-                        "• Feuilles: Mildiou, Alternariose\n" +
-                        "• Fruits: Anthracnose, coup de soleil\n" +
-                        "• Tiges: Chancre, mildiou\n\n" +
-                        "Pouvez-vous préciser où se trouvent les taches et leur aspect ?";
-            } else {
-                response = "🔍 **DIAGNOSTIC DES TACHES**\n\n" +
-                        "Pour un diagnostic précis, décrivez-moi:\n" +
-                        "• Couleur: brune, jaune, noire ?\n" +
-                        "• Localisation: feuilles, fruits, tiges ?\n" +
-                        "• Forme: ronde, irrégulière ?\n" +
-                        "• Présence de duvet ou moisissure ?\n\n" +
-                        "Ces détails m'aideront à identifier le problème!";
-            }
-        }
-
-        // Réponse par défaut
-        else {
-            response = "🍅 **ASSISTANT TOMATES**\n\n" +
-                    "Je suis spécialisé dans la protection des tomates. Je peux vous aider avec:\n\n" +
-                    "🦠 **Maladies:** Mildiou, alternariose, septoriose\n" +
-                    "🐛 **Parasites:** Pucerons, araignées rouges, aleurodes\n" +
-                    "💛 **Carences:** Azote, potassium, magnésium\n" +
-                    "🌸 **Fructification:** Pollinisation, chute des fleurs\n" +
-                    "🌱 **Culture:** Plantation, entretien, fertilisation\n\n" +
-                    "Décrivez-moi votre problème en détail pour un diagnostic précis!";
-        }
-
-        addBotMessage(response);
-    }
-
-    private boolean containsAny(String text, String... keywords) {
-        for (String keyword : keywords) {
-            if (text.contains(keyword)) {
-                return true;
-            }
-        }
-        return false;
     }
 }
