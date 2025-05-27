@@ -11,9 +11,9 @@
         android:title="Profil"/>
 
     <item
-        android:id="@+id/nav_feedbacks"
-        android:icon="@drawable/ic_feedbacks"
-        android:title="Feedbacks" />
+        android:id="@+id/nav_environment_admin"
+        android:icon="@drawable/ic_environment"
+        android:title="Environnement" />
 
 
 

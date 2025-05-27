@@ -12,6 +12,12 @@ android:layout_centerInParent="true"
 android:background="@drawable/dialog_background"
 android:orientation="vertical"
 android:padding="20dp">
+    <TextView
+        android:layout_width="160dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:drawableTop="@drawable/ic_logout"
+        android:drawableTint="@color/error_red" />
 
 <TextView
     android:layout_width="match_parent"

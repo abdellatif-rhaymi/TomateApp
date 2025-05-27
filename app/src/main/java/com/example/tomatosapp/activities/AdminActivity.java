@@ -105,10 +105,8 @@ public class AdminActivity extends AppCompatActivity {
                 } else if (id == R.id.nav_users) {
                     navigateToActivity(UserManagementActivity.class);
                     return true;
-                } else if (id == R.id.nav_feedbacks) {
-                    if (recyclerView != null) {
-                        recyclerView.smoothScrollToPosition(0);
-                    }
+                } else if (id == R.id.nav_environment_admin) {
+                    navigateToActivity(EnvironmentActivity.class);
                     return true;
                 } else if (id == R.id.nav_logout_admin) {
                     navigateToActivity(AdminLogoutActivity.class);
