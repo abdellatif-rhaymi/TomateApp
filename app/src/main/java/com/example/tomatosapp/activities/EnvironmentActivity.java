@@ -31,7 +31,7 @@ import java.util.Locale;
 
 public class EnvironmentActivity extends AppCompatActivity {
 
-    private LineChart temperatureChart, humidityChart;
+    private LineChart temperatureChart, humidityChart, lightingChart;
     private DatabaseReference databaseRef;
     private TextView lastUpdateText;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM HH:mm", Locale.getDefault());
@@ -44,11 +44,13 @@ public class EnvironmentActivity extends AppCompatActivity {
         // Initialisation des vues
         temperatureChart = findViewById(R.id.temperatureChart);
         humidityChart = findViewById(R.id.humidityChart);
+        lightingChart = findViewById(R.id.lightingChart);
         lastUpdateText = findViewById(R.id.lastUpdateText);
 
         // Configuration des graphiques
         setupChart(temperatureChart, "Température (°C)", Color.RED);
         setupChart(humidityChart, "Humidité (%)", Color.BLUE);
+        setupChart(lightingChart, "Luminosité (lux)", Color.YELLOW);
 
         // FIXED: Configure Firebase for Europe West 1 region
         FirebaseDatabase database = FirebaseDatabase.getInstance("https://tomateapp-b5904-default-rtdb.europe-west1.firebasedatabase.app/");
@@ -112,6 +114,7 @@ public class EnvironmentActivity extends AppCompatActivity {
         // Réinitialisation des graphiques
         temperatureChart.clear();
         humidityChart.clear();
+        lightingChart.clear();
 
         // FIXED: Chargement température avec le bon chemin
         databaseRef.child("temperature").orderByChild("timestamp")
@@ -254,6 +257,77 @@ public class EnvironmentActivity extends AppCompatActivity {
                         Log.e("Firebase", "Erreur humidité", error.toException());
                     }
                 });
+
+        // NOUVEAU: Chargement luminosité
+        databaseRef.child("luminosite").orderByChild("timestamp")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        List<Entry> entries = new ArrayList<>();
+                        long latestTimestamp = 0;
+
+                        Log.d("Firebase", "Données luminosité reçues: " + snapshot.getChildrenCount());
+
+                        for (DataSnapshot data : snapshot.getChildren()) {
+                            try {
+                                // IMPROVED: Better null checking and type conversion
+                                Object valueObj = data.child("value").getValue();
+                                Object timestampObj = data.child("timestamp").getValue();
+
+                                Float value = null;
+                                Long timestamp = null;
+
+                                // Handle different number types for value
+                                if (valueObj instanceof Double) {
+                                    value = ((Double) valueObj).floatValue();
+                                } else if (valueObj instanceof Float) {
+                                    value = (Float) valueObj;
+                                } else if (valueObj instanceof Long) {
+                                    value = ((Long) valueObj).floatValue();
+                                } else if (valueObj instanceof Integer) {
+                                    value = ((Integer) valueObj).floatValue();
+                                }
+
+                                // Handle timestamp conversion
+                                if (timestampObj instanceof Long) {
+                                    timestamp = (Long) timestampObj;
+                                    // FIXED: Convert to milliseconds if timestamp is in seconds
+                                    if (timestamp < 1000000000000L) { // If less than year 2001 in milliseconds
+                                        timestamp = timestamp * 1000; // Convert from seconds to milliseconds
+                                    }
+                                } else if (timestampObj instanceof Integer) {
+                                    timestamp = ((Integer) timestampObj).longValue();
+                                    if (timestamp < 1000000000000L) {
+                                        timestamp = timestamp * 1000;
+                                    }
+                                }
+
+                                if (value != null && timestamp != null) {
+                                    entries.add(new Entry(timestamp, value));
+                                    if (timestamp > latestTimestamp) {
+                                        latestTimestamp = timestamp;
+                                    }
+                                    Log.d("FirebaseData", "Luminosité: " + value + " à " + new Date(timestamp));
+                                } else {
+                                    Log.w("Firebase", "Données luminosité invalides - value: " + valueObj + ", timestamp: " + timestampObj);
+                                }
+                            } catch (Exception e) {
+                                Log.e("Firebase", "Erreur parsing luminosité", e);
+                            }
+                        }
+
+                        // Tri par timestamp
+                        Collections.sort(entries, Comparator.comparing(Entry::getX));
+
+                        updateChart(lightingChart, entries, "Luminosité", Color.rgb(255, 193, 7)); // Orange/jaune
+                        updateLastUpdateTime(latestTimestamp);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Log.e("Firebase", "Erreur luminosité", error.toException());
+                    }
+                });
     }
 
     private void setupChart(LineChart chart, String label, int color) {
@@ -283,8 +357,16 @@ public class EnvironmentActivity extends AppCompatActivity {
 
         // Configuration axe Y
         YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setAxisMinimum(label.contains("Temp") ? 10f : 0f);
-        leftAxis.setAxisMaximum(label.contains("Temp") ? 40f : 100f);
+        if (label.contains("Temp")) {
+            leftAxis.setAxisMinimum(10f);
+            leftAxis.setAxisMaximum(40f);
+        } else if (label.contains("Humid")) {
+            leftAxis.setAxisMinimum(0f);
+            leftAxis.setAxisMaximum(100f);
+        } else if (label.contains("Luminosité")) {
+            leftAxis.setAxisMinimum(0f);
+            leftAxis.setAxisMaximum(1000f); // Ajustez selon vos valeurs de luminosité
+        }
         leftAxis.setGranularity(5f);
         leftAxis.setDrawGridLines(true);
 
