@@ -29,6 +29,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class ImageUploadActivity extends AppCompatActivity {
     private static final String TAG = "ImageUploadActivity";
@@ -135,7 +136,8 @@ public class ImageUploadActivity extends AppCompatActivity {
             }
         }
     }
-    // Dans ImageUploadActivity
+
+    // Dialog de feedback avec génération d'ID
     private void showFeedbackDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_feedback, null);
@@ -148,17 +150,38 @@ public class ImageUploadActivity extends AppCompatActivity {
                 .setPositiveButton("Envoyer", (dialog, which) -> {
                     int rating = (int) ratingBar.getRating();
                     String feedback = feedbackEditText.getText().toString();
-                    saveFeedbackToFirestore(rating, feedback);
+
+                    // Générer un ID unique pour le feedback
+                    String feedbackId = generateFeedbackId();
+
+                    saveFeedbackToFirestore(feedbackId, rating, feedback);
                 })
                 .setNegativeButton("Annuler", null)
                 .show();
     }
 
-    private void saveFeedbackToFirestore(int rating, String feedback) {
+    // Méthode pour générer un ID unique
+    private String generateFeedbackId() {
+        // Option 1: Utiliser Firestore pour générer un ID automatique (recommandé)
+        return FirebaseFirestore.getInstance().collection("feedbacks").document().getId();
+
+        // Option 2: Utiliser UUID (alternative)
+        // return UUID.randomUUID().toString();
+
+        // Option 3: Combiner timestamp + UUID court (pour plus de lisibilité)
+        // return System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    // Sauvegarde du feedback avec ID généré
+    private void saveFeedbackToFirestore(String feedbackId, int rating, String feedback) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            Toast.makeText(this, "Utilisateur non connecté", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         Map<String, Object> feedbackData = new HashMap<>();
+        feedbackData.put("id", feedbackId);
         feedbackData.put("userId", user.getUid());
         feedbackData.put("userEmail", user.getEmail());
         feedbackData.put("rating", rating);
@@ -166,10 +189,15 @@ public class ImageUploadActivity extends AppCompatActivity {
         feedbackData.put("timestamp", FieldValue.serverTimestamp());
 
         FirebaseFirestore.getInstance().collection("feedbacks")
-                .add(feedbackData)
-                .addOnSuccessListener(documentReference ->
-                        Toast.makeText(this, "Merci pour votre feedback!", Toast.LENGTH_SHORT).show())
-                .addOnFailureListener(e ->
-                        Toast.makeText(this, "Erreur: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .document(feedbackId) // Utiliser l'ID généré comme ID du document
+                .set(feedbackData)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Merci pour votre feedback!", Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "Feedback sauvegardé avec l'ID: " + feedbackId);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Erreur: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.e(TAG, "Erreur lors de la sauvegarde du feedback", e);
+                });
     }
-    }
+}
