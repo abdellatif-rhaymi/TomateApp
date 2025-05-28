@@ -4,30 +4,43 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp">
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/teal_200">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:background="@drawable/card_gradient_background">
 
-        <ImageView
-            android:id="@+id/user_avatar"
-            android:layout_width="50dp"
-            android:layout_height="40dp"
+        <!-- User Avatar -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="2dp">
 
-            app:shapeAppearanceOverlay="@style/CircleImageView"
-            android:src="@drawable/ic_user"/>
+            <ImageView
+                android:id="@+id/user_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_user"
+                android:background="@color/teal_100" />
+        </com.google.android.material.card.MaterialCardView>
 
+        <!-- User Info Section -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_gravity="center_vertical">
 
             <TextView
                 android:id="@+id/user_email"
@@ -35,25 +48,57 @@
                 android:layout_height="wrap_content"
                 android:textColor="@color/teal_700"
                 android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/user_role"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="@color/teal_200"
-                android:textSize="14sp" />
+                android:textColor="@color/teal_500"
+                android:textSize="14sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
         </LinearLayout>
 
-        <com.google.android.material.chip.Chip
-            android:id="@+id/user_status_chip"
-            style="@style/Widget.MaterialComponents.Chip.Action"
+        <!-- Status and Actions Section -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="Active"
-            android:textColor="@color/white"
-            app:chipBackgroundColor="@color/status_active" />
+            android:orientation="vertical"
+            android:layout_gravity="center_vertical"
+            android:gravity="center">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/user_status_chip"
+                style="@style/Widget.MaterialComponents.Chip.Action"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Active"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                app:chipCornerRadius="16dp"
+                app:chipBackgroundColor="@color/status_active"
+                app:chipMinHeight="32dp" />
+
+            <!-- Delete Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_delete_user"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="8dp"
+                android:contentDescription="Delete user"
+                app:backgroundTint="@color/red_50"
+                app:cornerRadius="20dp"
+                app:icon="@drawable/ic_delete"
+                app:iconSize="20dp"
+                app:iconTint="@color/red_500"
+                app:strokeColor="@color/red_200"
+                app:strokeWidth="1dp" />
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

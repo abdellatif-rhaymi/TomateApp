@@ -99,4 +99,10 @@
     <color name="light_gray_background">#F5F5F5</color>
     <color name="gray_text">#607D8B</color>
 
+    <color name="red_500">#F44336</color>
+    <color name="red_200">#FFCDD2</color>
+    <color name="red_50">#FFEBEE</color>
+    <color name="teal_100">#B2DFDB</color>
+    <color name="teal_500">#009688</color>
+
 </resources>

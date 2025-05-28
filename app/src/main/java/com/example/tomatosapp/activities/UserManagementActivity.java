@@ -92,9 +92,13 @@ public class UserManagementActivity extends AppCompatActivity {
                 .setLifecycleOwner(this)
                 .build();
 
-        userAdapter = new UserAdapter(options, user -> {
-            showUserDetails(user);
-        });
+        userAdapter = new UserAdapter(options,
+                user -> {
+                    showUserDetails(user);
+                },
+                user -> {
+                    deleteUser(user);
+                });
 
         usersRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         usersRecyclerView.setAdapter(userAdapter);
@@ -107,6 +111,37 @@ public class UserManagementActivity extends AppCompatActivity {
                         "Rôle: " + role + "\n" +
                         "ID: " + user.getUserId(),
                 Toast.LENGTH_LONG).show();
+    }
+
+    private void deleteUser(User user) {
+        // Show confirmation dialog before deleting
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Supprimer l'utilisateur")
+                .setMessage("Êtes-vous sûr de vouloir supprimer cet utilisateur?\n\nEmail: " + user.getEmail())
+                .setPositiveButton("Supprimer", (dialog, which) -> {
+                    performUserDeletion(user);
+                })
+                .setNegativeButton("Annuler", null)
+                .show();
+    }
+
+    private void performUserDeletion(User user) {
+        progressBar.setVisibility(View.VISIBLE);
+
+        db.collection("utilisateurs")
+                .document(user.getEmail())
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(this, "Utilisateur supprimé avec succès", Toast.LENGTH_SHORT).show();
+                    // Refresh user counts after deletion
+                    loadUserCounts();
+                })
+                .addOnFailureListener(e -> {
+                    progressBar.setVisibility(View.GONE);
+                    Log.w(TAG, "Error deleting user", e);
+                    Toast.makeText(this, "Erreur lors de la suppression de l'utilisateur", Toast.LENGTH_SHORT).show();
+                });
     }
 
     @Override

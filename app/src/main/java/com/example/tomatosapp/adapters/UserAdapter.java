@@ -13,80 +13,111 @@ import com.example.tomatosapp.R;
 import com.example.tomatosapp.model.User;
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 
-public class UserAdapter extends FirestoreRecyclerAdapter<User, UserAdapter.UserHolder> {
+public class UserAdapter extends FirestoreRecyclerAdapter<User, UserAdapter.UserViewHolder> {
 
     public interface OnUserClickListener {
         void onUserClick(User user);
     }
 
-    private final OnUserClickListener listener;
+    public interface OnDeleteClickListener {
+        void onDeleteClick(User user);
+    }
 
-    public UserAdapter(@NonNull FirestoreRecyclerOptions<User> options, OnUserClickListener listener) {
+    private OnUserClickListener userClickListener;
+    private OnDeleteClickListener deleteClickListener;
+
+    public UserAdapter(@NonNull FirestoreRecyclerOptions<User> options,
+                       OnUserClickListener userClickListener,
+                       OnDeleteClickListener deleteClickListener) {
         super(options);
-        this.listener = listener;
+        this.userClickListener = userClickListener;
+        this.deleteClickListener = deleteClickListener;
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull UserHolder holder, int position, @NonNull User user) {
+    protected void onBindViewHolder(@NonNull UserViewHolder holder, int position, @NonNull User user) {
         holder.bind(user);
     }
 
     @NonNull
     @Override
-    public UserHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_user, parent, false);
-        return new UserHolder(view);
+        return new UserViewHolder(view);
     }
 
-    class UserHolder extends RecyclerView.ViewHolder {
-        private final ImageView avatar;
-        private final TextView email;
-        private final TextView role;
-        private final Chip statusChip;
+    public class UserViewHolder extends RecyclerView.ViewHolder {
+        private ImageView userAvatar;
+        private TextView userEmail;
+        private TextView userRole;
+        private Chip userStatusChip;
+        private MaterialButton deleteButton;
 
-        public UserHolder(View itemView) {
+        public UserViewHolder(@NonNull View itemView) {
             super(itemView);
-            avatar = itemView.findViewById(R.id.user_avatar);
-            email = itemView.findViewById(R.id.user_email);
-            role = itemView.findViewById(R.id.user_role);
-            statusChip = itemView.findViewById(R.id.user_status_chip);
+            userAvatar = itemView.findViewById(R.id.user_avatar);
+            userEmail = itemView.findViewById(R.id.user_email);
+            userRole = itemView.findViewById(R.id.user_role);
+            userStatusChip = itemView.findViewById(R.id.user_status_chip);
+            deleteButton = itemView.findViewById(R.id.btn_delete_user);
+        }
 
+        public void bind(User user) {
+            // Set user email
+            userEmail.setText(user.getEmail() != null ? user.getEmail() : "Email non défini");
+
+            // Set user role
+            String role = user.getRole() != null ? user.getRole() : "non défini";
+            userRole.setText("Rôle: " + role);
+
+            // Set status chip based on user activity or role
+            updateStatusChip(user);
+
+            // Configure delete button based on user role
+            configureDeleteButton(user);
+
+            // Set click listener for the entire item
             itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onUserClick(getItem(position));
+                if (userClickListener != null) {
+                    userClickListener.onUserClick(user);
                 }
             });
         }
 
-        public void bind(User user) {
-            email.setText(user.getEmail());
+        private void updateStatusChip(User user) {
+            String role = user.getRole() != null ? user.getRole().toLowerCase() : "utilisateur";
 
-            // Gestion robuste du rôle
-            String userRole = user.getRole();
-            if (userRole == null) {
-                userRole = "user";
+            if ("admin".equals(role)) {
+                userStatusChip.setText("Admin");
+                userStatusChip.setChipBackgroundColorResource(R.color.admin_accent);
             } else {
-                userRole = userRole.toLowerCase().trim();
+                userStatusChip.setText("Utilisateur");
+                userStatusChip.setChipBackgroundColorResource(R.color.status_active);
             }
+        }
 
-            String displayRole;
-            int chipColor;
+        private void configureDeleteButton(User user) {
+            String role = user.getRole() != null ? user.getRole().toLowerCase() : "utilisateur";
 
-            if (userRole.equals("admin")) {
-                displayRole = "Administrateur";
-                chipColor = R.color.admin_card_primary;
+            if ("admin".equals(role)) {
+                // Disable delete button for admin users
+                deleteButton.setEnabled(false);
+                deleteButton.setAlpha(0.5f);
+                deleteButton.setOnClickListener(null);
             } else {
-                displayRole = "Utilisateur";
-                chipColor = R.color.admin_card_secondary;
+                // Enable delete button for regular users
+                deleteButton.setEnabled(true);
+                deleteButton.setAlpha(1.0f);
+                deleteButton.setOnClickListener(v -> {
+                    if (deleteClickListener != null) {
+                        deleteClickListener.onDeleteClick(user);
+                    }
+                });
             }
-
-            role.setText("Rôle: " + displayRole);
-            statusChip.setText(displayRole);
-            statusChip.setChipBackgroundColorResource(chipColor);
         }
     }
 }

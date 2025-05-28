@@ -84,8 +84,7 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
         private final TextView dateView;
         private final MaterialCardView cardView;
         private final Chip statusChip;
-        private final View btnResolve;
-        private final View btnDelete;
+
 
 
         public FeedbackHolder(View itemView) {
@@ -96,8 +95,6 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
             messageView = itemView.findViewById(R.id.feedback_message);
             dateView = itemView.findViewById(R.id.timestamp);
             statusChip = itemView.findViewById(R.id.status_chip);
-            btnResolve = itemView.findViewById(R.id.btn_resolve);
-            btnDelete = itemView.findViewById(R.id.btn_delete);
 
 
             itemView.setOnClickListener(v -> handleClick());
@@ -170,10 +167,6 @@ public class FeedbackAdapter extends FirestoreRecyclerAdapter<UserFeedback, Feed
                     statusChip.setText("En attente");
                     statusChip.setChipBackgroundColorResource(R.color.status_pending);
                 }
-
-                // Update button visibility/text based on status
-                btnResolve.setVisibility(View.VISIBLE);
-                btnDelete.setVisibility(View.VISIBLE);
 
             } catch (Exception e) {
                 Log.e(TAG, "Error in bind method for position " + position, e);
