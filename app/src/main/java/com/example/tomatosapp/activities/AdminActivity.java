@@ -20,6 +20,8 @@ import com.example.tomatosapp.model.UserFeedback;
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.chip.Chip;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Query;
@@ -41,6 +43,10 @@ public class AdminActivity extends AppCompatActivity {
     private TextView totalFeedbacks;
     private TextView averageRating;
     private TextView pendingFeedbacks;
+
+    private FirebaseAuth mAuth;
+
+    private TextView welcomeTextAdmin;
 
     private Chip statusChip;
 
@@ -67,6 +73,20 @@ public class AdminActivity extends AppCompatActivity {
             averageRating = findViewById(R.id.average_rating);
             pendingFeedbacks = findViewById(R.id.pending_feedbacks);
             statusChip = findViewById(R.id.status_chip);
+            welcomeTextAdmin = findViewById(R.id.welcomeTextAdmin);
+
+            // Initialize Firebase Auth
+            mAuth = FirebaseAuth.getInstance();
+
+            // Get current user and check authentication
+            FirebaseUser user = mAuth.getCurrentUser();
+            if (user == null || !user.isEmailVerified()) {
+                redirectToAuth();
+                return;
+            }
+
+            // Set welcome message after user is confirmed to be valid
+            setWelcomeMessage(user);
 
             if (recyclerView == null) {
                 Log.e(TAG, "RecyclerView not found in layout");
@@ -83,6 +103,45 @@ public class AdminActivity extends AppCompatActivity {
             Log.e(TAG, "Error initializing views", e);
             showToast("Error initializing interface");
         }
+    }
+
+    private void setWelcomeMessage(FirebaseUser user) {
+        try {
+            if (welcomeTextAdmin != null && user != null) {
+                String userName = getUserDisplayName(user);
+                welcomeTextAdmin.setText(getString(R.string.welcome_message, userName));
+                Log.d(TAG, "Welcome message set for user: " + userName);
+            } else {
+                Log.w(TAG, "Cannot set welcome message - welcomeTextAdmin or user is null");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting welcome message", e);
+        }
+    }
+
+    private String getUserDisplayName(FirebaseUser user) {
+        if (user == null) {
+            return "Guest";
+        }
+
+        // Try display name first
+        if (user.getDisplayName() != null && !user.getDisplayName().trim().isEmpty()) {
+            return user.getDisplayName().trim();
+        }
+
+        // Try email as fallback
+        if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+            // Extract name part from email (before @)
+            String email = user.getEmail().trim();
+            int atIndex = email.indexOf('@');
+            if (atIndex > 0) {
+                return email.substring(0, atIndex);
+            }
+            return email;
+        }
+
+        // Default fallback
+        return "Admin";
     }
 
     private void setupBottomNavigation() {
@@ -118,6 +177,13 @@ public class AdminActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    private void redirectToAuth() {
+        Intent intent = new Intent(this, AuthentificationActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void navigateToActivity(Class<?> activityClass) {
@@ -208,8 +274,6 @@ public class AdminActivity extends AppCompatActivity {
                 if (pendingFeedbacks != null) {
                     pendingFeedbacks.setText(String.valueOf(pending));
                 }
-
-
 
                 Log.d(TAG, "Statistics UI updated successfully");
             } catch (Exception e) {
@@ -584,5 +648,19 @@ public class AdminActivity extends AppCompatActivity {
 
         // Recharger les statistiques quand l'activité reprend
         loadStatistics();
+
+        // Refresh welcome message in case user info changed
+        refreshWelcomeMessage();
+    }
+
+    private void refreshWelcomeMessage() {
+        try {
+            FirebaseUser user = mAuth.getCurrentUser();
+            if (user != null) {
+                setWelcomeMessage(user);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error refreshing welcome message", e);
+        }
     }
 }
