@@ -44,7 +44,7 @@ public class ChatbotActivity extends AppCompatActivity {
     private static final String TAG = "ChatbotActivity";
 
     // Google Gemini API Configuration
-    private static final String GEMINI_API_KEY = "AIzaSyB2zWf3_zMQLHVu91i4wOpm8FQ-AcbAPBU";
+    private static final String GEMINI_API_KEY = "";
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY;
 
     private RecyclerView chatRecyclerView;
