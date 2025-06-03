@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TomatosApp</string>
+    <string name="app_name">TomateosGuard</string>
     <string name="welcome_message">Bienvenue, %s</string>
     <string name="logout_success">Déconnexion réussie</string>
     <string name="logging_out_message">logging_out_message</string>
