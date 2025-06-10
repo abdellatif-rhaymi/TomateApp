@@ -1,7 +1,9 @@
 package com.example.tomatosapp.activities;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -11,28 +13,39 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.tomatosapp.R;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class ProfileActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+    private FirebaseStorage storage;
     private DocumentReference userRef;
     private FirebaseUser currentUser;
+
+    private static final int REQUEST_CODE_GALLERY = 100;
 
     private ImageView profileImage;
     private TextView tvEmail, tvRole, tvCreationDate;
@@ -40,6 +53,11 @@ public class ProfileActivity extends AppCompatActivity {
     private Button btnSave, btnChangePassword;
     private MaterialToolbar toolbar;
     private ProgressBar progressBar;
+
+    private Uri selectedImageUri;
+    private String currentProfileImageUrl; // Store current profile image URL
+
+    private MaterialButton changeProfileImage;
 
     private static final String TAG = "ProfileActivity";
 
@@ -85,6 +103,7 @@ public class ProfileActivity extends AppCompatActivity {
             Log.d(TAG, "Initializing Firebase");
             mAuth = FirebaseAuth.getInstance();
             db = FirebaseFirestore.getInstance();
+            storage = FirebaseStorage.getInstance(); // Initialize Firebase Storage
             currentUser = mAuth.getCurrentUser();
             Log.d(TAG, "Firebase initialized successfully");
         } catch (Exception e) {
@@ -107,6 +126,7 @@ public class ProfileActivity extends AppCompatActivity {
             btnChangePassword = findViewById(R.id.btn_change_password);
             toolbar = findViewById(R.id.toolbar);
             progressBar = findViewById(R.id.progressBar);
+            changeProfileImage = findViewById(R.id.btn_change_photo);
 
             // Check for missing views
             if (profileImage == null) Log.w(TAG, "profile_image not found in layout");
@@ -118,6 +138,9 @@ public class ProfileActivity extends AppCompatActivity {
             if (btnChangePassword == null) Log.w(TAG, "btn_change_password not found in layout");
             if (toolbar == null) Log.w(TAG, "toolbar not found in layout");
             if (progressBar == null) Log.w(TAG, "progressBar not found in layout");
+
+            // Setup image profile
+            changeProfileImage.setOnClickListener(v -> openGallery());
 
             // Setup toolbar if available
             if (toolbar != null) {
@@ -224,6 +247,30 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
+    private void openGallery() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(intent, REQUEST_CODE_GALLERY);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_GALLERY && resultCode == RESULT_OK && data != null) {
+            selectedImageUri = data.getData();
+            displayImage();
+        }
+    }
+
+    private void displayImage() {
+        if (selectedImageUri != null && profileImage != null) {
+            Glide.with(this)
+                    .load(selectedImageUri)
+                    .circleCrop()
+                    .into(profileImage);
+        }
+    }
+
     private void displayUserInfo(DocumentSnapshot document) {
         try {
             // Display basic Firebase Auth info
@@ -249,6 +296,10 @@ public class ProfileActivity extends AppCompatActivity {
                     }
                 }
 
+                // Load profile image from Firestore
+                currentProfileImageUrl = document.getString("profileImageUrl");
+                loadProfileImage();
+
                 Log.d(TAG, "User profile loaded successfully");
             }
 
@@ -256,6 +307,31 @@ public class ProfileActivity extends AppCompatActivity {
             Log.e(TAG, "Erreur lors de l'affichage des données", e);
             if (tvRole != null) tvRole.setText("Erreur chargement rôle");
             if (tvCreationDate != null) tvCreationDate.setText("Erreur chargement date");
+        }
+    }
+
+    private void loadProfileImage() {
+        if (profileImage != null) {
+            if (selectedImageUri != null) {
+                // Show newly selected image
+                Glide.with(this)
+                        .load(selectedImageUri)
+                        .circleCrop()
+                        .placeholder(R.drawable.ic_profile)
+                        .error(R.drawable.ic_profile)
+                        .into(profileImage);
+            } else if (currentProfileImageUrl != null && !currentProfileImageUrl.isEmpty()) {
+                // Show saved profile image from Firestore
+                Glide.with(this)
+                        .load(currentProfileImageUrl)
+                        .circleCrop()
+                        .placeholder(R.drawable.ic_profile)
+                        .error(R.drawable.ic_profile)
+                        .into(profileImage);
+            } else {
+                // Show default image
+                profileImage.setImageResource(R.drawable.ic_profile);
+            }
         }
     }
 
@@ -277,27 +353,70 @@ public class ProfileActivity extends AppCompatActivity {
                         currentUser.getEmail() : "Email non disponible");
             }
 
-            // Display profile image if available
-            if (profileImage != null) {
-                if (currentUser.getPhotoUrl() != null) {
-                    try {
-                        Glide.with(this)
-                                .load(currentUser.getPhotoUrl())
-                                .circleCrop()
-                                .into(profileImage);
-                    } catch (Exception e) {
-                        Log.e(TAG, "Error loading profile image with Glide", e);
-                        profileImage.setImageResource(R.drawable.ic_profile);
-                    }
-                } else {
-                    profileImage.setImageResource(R.drawable.ic_profile);
-                }
-            }
+            // Load profile image
+            loadProfileImage();
 
             Log.d(TAG, "Basic user info displayed");
 
         } catch (Exception e) {
             Log.e(TAG, "Error in displayBasicUserInfo", e);
+        }
+    }
+
+    private void uploadImageToFirebaseStorage(Uri imageUri, String userId) {
+        if (progressBar != null) {
+            progressBar.setVisibility(View.VISIBLE);
+        }
+
+        StorageReference storageRef = storage.getReference();
+        StorageReference profileImagesRef = storageRef.child("profile_images/" + userId + ".jpg");
+
+        UploadTask uploadTask = profileImagesRef.putFile(imageUri);
+        uploadTask.addOnSuccessListener(taskSnapshot -> {
+            // Get download URL
+            profileImagesRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                String downloadUrl = uri.toString();
+                Log.d(TAG, "Image uploaded successfully: " + downloadUrl);
+
+                // Save URL to Firestore
+                saveImageUrlToFirestore(downloadUrl);
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Failed to get download URL", e);
+                if (progressBar != null) {
+                    progressBar.setVisibility(View.GONE);
+                }
+                Toast.makeText(this, "Erreur lors de l'obtention de l'URL de l'image", Toast.LENGTH_SHORT).show();
+            });
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Image upload failed", e);
+            if (progressBar != null) {
+                progressBar.setVisibility(View.GONE);
+            }
+            Toast.makeText(this, "Échec du téléchargement de l'image", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void saveImageUrlToFirestore(String imageUrl) {
+        if (userRef != null) {
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("profileImageUrl", imageUrl);
+
+            userRef.update(updates)
+                    .addOnSuccessListener(aVoid -> {
+                        Log.d(TAG, "Profile image URL saved to Firestore");
+                        currentProfileImageUrl = imageUrl;
+                        if (progressBar != null) {
+                            progressBar.setVisibility(View.GONE);
+                        }
+                        Toast.makeText(this, "Image de profil mise à jour avec succès", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to save image URL to Firestore", e);
+                        if (progressBar != null) {
+                            progressBar.setVisibility(View.GONE);
+                        }
+                        Toast.makeText(this, "Erreur lors de la sauvegarde de l'image", Toast.LENGTH_SHORT).show();
+                    });
         }
     }
 
@@ -318,6 +437,12 @@ public class ProfileActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.VISIBLE);
             }
 
+            // First, upload image if a new one was selected
+            if (selectedImageUri != null) {
+                uploadImageToFirebaseStorage(selectedImageUri, currentUser.getUid());
+                selectedImageUri = null; // Reset after upload
+            }
+
             // Update Firebase Auth profile
             UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                     .setDisplayName(newName)
@@ -326,13 +451,17 @@ public class ProfileActivity extends AppCompatActivity {
             currentUser.updateProfile(profileUpdates)
                     .addOnCompleteListener(task -> {
                         try {
-                            if (progressBar != null) {
+                            if (selectedImageUri == null && progressBar != null) {
+                                // Only hide progress bar if not uploading image
                                 progressBar.setVisibility(View.GONE);
                             }
 
                             if (task.isSuccessful()) {
                                 Log.d(TAG, "Profile updated successfully");
-                                Toast.makeText(this, "Profil mis à jour avec succès", Toast.LENGTH_SHORT).show();
+                                if (selectedImageUri == null) {
+                                    // Only show success message if not uploading image
+                                    Toast.makeText(this, "Profil mis à jour avec succès", Toast.LENGTH_SHORT).show();
+                                }
                                 if (etName != null) {
                                     etName.setText(newName);
                                 }
